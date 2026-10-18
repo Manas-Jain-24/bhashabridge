@@ -47,3 +47,5 @@ class AnalyzeResponse(BaseModel):
     common_mistakes: List[str] = []
     examples: List[ExampleItem] = []
     model_source: Optional[str] = None
+    explanation_source: Optional[str] = "local_rules"
+    cultural_mnemonic: Optional[str] = None

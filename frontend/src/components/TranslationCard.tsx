@@ -137,10 +137,22 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
 
       {/* Quick Contrast Highlights Banner */}
       {data.differences && data.differences.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-950/20 via-indigo-950/30 to-slate-950/40 p-3.5 rounded-xl border border-amber-500/25 space-y-1.5 animate-in fade-in">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Key Contrast Insights (Why It Differs)</span>
+        <div className="bg-gradient-to-r from-amber-950/20 via-indigo-950/30 to-slate-950/40 p-3.5 rounded-xl border border-amber-500/25 space-y-2 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Key Contrast Insights (Why It Differs)</span>
+            </div>
+            {data.explanation_source === 'hybrid_gemini' ? (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                AI Sensei (Gemini)
+              </span>
+            ) : (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-900 text-slate-400 border border-slate-800">
+                Local UD Contrast Engine
+              </span>
+            )}
           </div>
           <div className="space-y-1 text-xs text-slate-300 leading-relaxed">
             {data.differences.slice(0, 3).map((diff, i) => (
@@ -150,6 +162,12 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
               </div>
             ))}
           </div>
+          {data.cultural_mnemonic && (
+            <div className="mt-2 p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-2 text-xs text-indigo-200">
+              <span className="text-amber-400 font-bold shrink-0">💡 Sensei's Tip:</span>
+              <span className="leading-snug">{data.cultural_mnemonic}</span>
+            </div>
+          )}
         </div>
       )}
 

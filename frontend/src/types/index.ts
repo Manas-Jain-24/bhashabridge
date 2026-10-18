@@ -44,6 +44,9 @@ export interface AnalyzeResponse {
   differences: string[];
   common_mistakes: string[];
   examples: ExampleItem[];
+  model_source?: string;
+  explanation_source?: string;
+  cultural_mnemonic?: string;
 }
 
 export interface PracticeOption {

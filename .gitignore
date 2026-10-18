@@ -10,3 +10,5 @@ frontend/node_modules/
 data/raw/
 .env
 backend/.env
+*.db
+*.sqlite3

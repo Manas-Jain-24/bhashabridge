@@ -15,3 +15,5 @@ class ExplainResponse(BaseModel):
     differences: List[str] = []
     common_mistakes: List[str] = []
     examples: List[ExampleItem] = []
+    explanation_source: Optional[str] = "local_rules"
+    cultural_mnemonic: Optional[str] = None

@@ -81,5 +81,7 @@ def analyze_text(request: AnalyzeRequest):
         differences=explanation_result["differences"],
         common_mistakes=explanation_result["common_mistakes"],
         examples=explanation_result["examples"],
-        model_source=trans_result.get("model_source")
+        model_source=trans_result.get("model_source"),
+        explanation_source=explanation_result.get("explanation_source", "local_rules"),
+        cultural_mnemonic=explanation_result.get("cultural_mnemonic")
     )

@@ -164,7 +164,19 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
               <Sparkles className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Why is this sentence different?</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white">Why is this sentence different?</h2>
+                {data.explanation_source === 'hybrid_gemini' ? (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    AI Sensei (Gemini)
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                    Local UD Engine
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400">
                 Grammar rules, sentence changes, and parallel examples
               </p>
@@ -348,6 +360,26 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
               </div>
             )}
           </div>
+
+          {/* Sensei's Cultural Mnemonic / Memory Hook */}
+          {data.cultural_mnemonic && (
+            <div className="bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-indigo-950/40 p-4 rounded-xl border border-amber-500/30 space-y-1.5 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Sensei's Memory Trick</span>
+                </div>
+                {data.explanation_source === 'hybrid_gemini' && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Gemini AI
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-amber-100/95 leading-relaxed font-medium">
+                {data.cultural_mnemonic}
+              </p>
+            </div>
+          )}
 
           {/* Pattern Takeaway Formula Banner */}
           {primaryRule && primaryRule.source_pattern && primaryRule.target_pattern && (

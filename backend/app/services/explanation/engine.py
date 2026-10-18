@@ -9,6 +9,7 @@ from app.services.explanation.grammar_rules import get_matching_rules, find_matc
 from app.services.explanation.bilingual_aligner import align_sentence_vocabulary
 from app.services.explanation.learner_traps import detect_learner_traps, analyze_formality_and_context
 from app.services.explanation.legacy_backup.engine_legacy import HybridExplanationEngine as LegacyExplanationEngine
+from app.services.explanation.llm_tutor import llm_tutor
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +291,30 @@ class HybridExplanationEngine(BaseExplanationService):
         )
 
         summary = f"{formality_info['level']} construction between {source_language.capitalize()} and {target_language.capitalize()}. {formality_info['usage']}"
+        explanation_source = "local_rules"
+        cultural_mnemonic = None
+
+        # Attempt Gemini LLM enrichment if available
+        llm_enrichment = llm_tutor.explain(
+            source_text=source_text,
+            source_language=source_language,
+            target_text=target_text,
+            target_language=target_language,
+            aligned_tokens=[v.model_dump() for v in aligned_vocab]
+        )
+
+        if llm_enrichment:
+            explanation_source = "hybrid_gemini"
+            if llm_enrichment.get("summary"):
+                summary = llm_enrichment["summary"]
+            if llm_enrichment.get("differences"):
+                # Prepend AI differences to local differences, preserving uniqueness
+                new_diffs = []
+                for d in llm_enrichment["differences"] + differences:
+                    if d not in new_diffs:
+                        new_diffs.append(d)
+                differences = new_diffs[:4]
+            cultural_mnemonic = llm_enrichment.get("cultural_mnemonic")
 
         return {
             "summary": summary,
@@ -297,7 +322,9 @@ class HybridExplanationEngine(BaseExplanationService):
             "grammar_points": [r.to_grammar_point().model_dump() for r in matched_rules],
             "differences": differences,
             "common_mistakes": traps,
-            "examples": [e.model_dump() for e in examples]
+            "examples": [e.model_dump() for e in examples],
+            "explanation_source": explanation_source,
+            "cultural_mnemonic": cultural_mnemonic
         }
 
     def _build_dynamic_differences(

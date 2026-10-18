@@ -2,6 +2,10 @@ import os
 import json
 import logging
 from typing import Optional, Dict, Any, List
+from dotenv import load_dotenv
+
+load_dotenv("backend/.env")
+load_dotenv(".env")
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +92,7 @@ Return ONLY a valid JSON object with the following keys:
 }}
 """
 
-        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
         for model_name in models_to_try:
             try:
                 response = self._client.models.generate_content(

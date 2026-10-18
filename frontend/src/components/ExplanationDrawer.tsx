@@ -45,32 +45,8 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizStatus, setQuizStatus] = useState<'unanswered' | 'correct' | 'incorrect'>('unanswered');
 
-  if (!isOpen || !data) return null;
-
-  const handleSpeak = (text: string, index: number) => {
-    setPlayingIndex(index);
-    speech.speak(text, 'marathi', 0.85, () => {
-      setPlayingIndex(null);
-    });
-  };
-
-  const handleCopy = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const primaryRule = data.grammar_explanation && data.grammar_explanation.length > 0
-    ? data.grammar_explanation[0]
-    : null;
-
-  const activeIndex = hoveredWordIndex !== null ? hoveredWordIndex : selectedWordIndex;
-  const activeWord = (data.vocabulary && activeIndex !== null && data.vocabulary[activeIndex])
-    ? data.vocabulary[activeIndex]
-    : (data.vocabulary && data.vocabulary.length > 0 ? data.vocabulary[0] : null);
-
   // Active quiz question derived from current example
-  const currentExample = data.examples && data.examples.length > 0
+  const currentExample = data?.examples && data.examples.length > 0
     ? data.examples[quizIndex % data.examples.length]
     : null;
 
@@ -149,10 +125,34 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
     sfx.playTileClick();
     setSelectedOption(null);
     setQuizStatus('unanswered');
-    if (data.examples && data.examples.length > 0) {
+    if (data?.examples && data.examples.length > 0) {
       setQuizIndex((prev) => (prev + 1) % data.examples.length);
     }
   };
+
+  const handleSpeak = (text: string, index: number) => {
+    setPlayingIndex(index);
+    speech.speak(text, 'marathi', 0.85, () => {
+      setPlayingIndex(null);
+    });
+  };
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  if (!isOpen || !data) return null;
+
+  const primaryRule = data.grammar_explanation && data.grammar_explanation.length > 0
+    ? data.grammar_explanation[0]
+    : null;
+
+  const activeIndex = hoveredWordIndex !== null ? hoveredWordIndex : selectedWordIndex;
+  const activeWord = (data.vocabulary && activeIndex !== null && data.vocabulary[activeIndex])
+    ? data.vocabulary[activeIndex]
+    : (data.vocabulary && data.vocabulary.length > 0 ? data.vocabulary[0] : null);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200">

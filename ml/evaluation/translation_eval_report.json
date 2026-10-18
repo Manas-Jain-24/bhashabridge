@@ -1,0 +1,107 @@
+{
+  "evaluation_name": "IndicTrans2 Translation Evaluation Suite",
+  "test_dataset": "data\\processed\\translation\\test.jsonl",
+  "total_test_samples": 56,
+  "metrics_summary": {
+    "hindi_to_marathi": {
+      "avg_bleu": 96.91,
+      "avg_chrf": 99.05,
+      "exact_match_rate_pct": 92.86
+    },
+    "marathi_to_hindi": {
+      "avg_bleu": 98.37,
+      "avg_chrf": 99.61,
+      "exact_match_rate_pct": 98.21
+    },
+    "aggregate": {
+      "mean_bleu": 97.64,
+      "mean_chrf": 99.33
+    }
+  },
+  "sample_evaluations": {
+    "hindi_to_marathi_samples": [
+      {
+        "source": "तुम सुबह घर जा रहा हूँ।",
+        "reference": "तू सकाळी घरी जात आहे।",
+        "prediction": "तू सकाळी घरी जात आहे।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "मैं शाम को लाइब्रेरी में आ रहा हूँ।",
+        "reference": "मी संध्याकाळी लायब्ररीत येत आहे।",
+        "prediction": "मी संध्याकाळी लायब्ररीत येत आहे।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "हम सब सुबह ऑफिस जा रहा हूँ।",
+        "reference": "आपण सकाळी ऑफिसला जात आहे।",
+        "prediction": "आपण सकाळी ऑफिसला जात आहे।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "वह आज लाइब्रेरी में जा रहा हूँ।",
+        "reference": "ती आज लायब्ररीत जात आहे।",
+        "prediction": "तो आज लायब्ररीत जात आहे।",
+        "bleu": 75.98,
+        "chrf": 88.62,
+        "exact_match": false
+      },
+      {
+        "source": "मजाक मत कर यार।",
+        "reference": "मस्करी करू नकोस यार।",
+        "prediction": "मस्करी करू नकोस यार।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      }
+    ],
+    "marathi_to_hindi_samples": [
+      {
+        "source": "तू सकाळी घरी जात आहे।",
+        "reference": "तुम सुबह घर जा रहा हूँ।",
+        "prediction": "तुम सुबह घर जा रहा हूँ।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "मी संध्याकाळी लायब्ररीत येत आहे।",
+        "reference": "मैं शाम को लाइब्रेरी में आ रहा हूँ।",
+        "prediction": "मैं शाम को लाइब्रेरी में आ रहा हूँ।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "आपण सकाळी ऑफिसला जात आहे।",
+        "reference": "हम सब सुबह ऑफिस जा रहा हूँ।",
+        "prediction": "हम सब सुबह ऑफिस जा रहा हूँ।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "ती आज लायब्ररीत जात आहे।",
+        "reference": "वह आज लाइब्रेरी में जा रहा हूँ।",
+        "prediction": "वह आज लाइब्रेरी में जा रहा हूँ।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "मस्करी करू नकोस यार।",
+        "reference": "मजाक मत कर यार।",
+        "prediction": "मजाक मत कर यार।",
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      }
+    ]
+  }
+}

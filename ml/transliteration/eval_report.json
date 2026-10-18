@@ -1,0 +1,94 @@
+{
+  "model": "CharSeq2Seq-BahdanauAttention",
+  "parameters": 1733228,
+  "test_examples": 14,
+  "metrics": {
+    "character_error_rate_cer": 22.41,
+    "word_error_rate_wer": 64.29,
+    "exact_match_accuracy": 35.71,
+    "total_character_edits": 13,
+    "total_reference_characters": 58
+  },
+  "sample_predictions": [
+    {
+      "input_roman": "samay",
+      "expected_devanagari": "समय",
+      "predicted_devanagari": "समाय",
+      "exact_match": false,
+      "edit_distance": 1,
+      "char_len": 3
+    },
+    {
+      "input_roman": "aamhala",
+      "expected_devanagari": "आम्हाला",
+      "predicted_devanagari": "आम्हाला",
+      "exact_match": true,
+      "edit_distance": 0,
+      "char_len": 7
+    },
+    {
+      "input_roman": "aap",
+      "expected_devanagari": "आप",
+      "predicted_devanagari": "प",
+      "exact_match": false,
+      "edit_distance": 1,
+      "char_len": 2
+    },
+    {
+      "input_roman": "kya",
+      "expected_devanagari": "क्या",
+      "predicted_devanagari": "या",
+      "exact_match": false,
+      "edit_distance": 2,
+      "char_len": 4
+    },
+    {
+      "input_roman": "udya",
+      "expected_devanagari": "उद्या",
+      "predicted_devanagari": "उद्या",
+      "exact_match": true,
+      "edit_distance": 0,
+      "char_len": 5
+    },
+    {
+      "input_roman": "pani",
+      "expected_devanagari": "पानी",
+      "predicted_devanagari": "पणी",
+      "exact_match": false,
+      "edit_distance": 2,
+      "char_len": 4
+    },
+    {
+      "input_roman": "aaj",
+      "expected_devanagari": "आज",
+      "predicted_devanagari": "जज",
+      "exact_match": false,
+      "edit_distance": 1,
+      "char_len": 2
+    },
+    {
+      "input_roman": "ghari",
+      "expected_devanagari": "घरी",
+      "predicted_devanagari": "घरी",
+      "exact_match": true,
+      "edit_distance": 0,
+      "char_len": 3
+    },
+    {
+      "input_roman": "kadhi",
+      "expected_devanagari": "कधी",
+      "predicted_devanagari": "ढी",
+      "exact_match": false,
+      "edit_distance": 2,
+      "char_len": 3
+    },
+    {
+      "input_roman": "khup",
+      "expected_devanagari": "खूप",
+      "predicted_devanagari": "खुप",
+      "exact_match": false,
+      "edit_distance": 1,
+      "char_len": 3
+    }
+  ]
+}

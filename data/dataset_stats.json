@@ -1,0 +1,81 @@
+{
+  "transliteration": {
+    "total_records": 93,
+    "split_counts": {
+      "train": 65,
+      "validation": 14,
+      "test": 14
+    },
+    "marathi_count": 50,
+    "hindi_count": 43,
+    "devanagari_char_vocab_size": 46,
+    "roman_char_vocab_size": 22,
+    "total_unique_char_vocab": 68,
+    "average_roman_input_length": 5.1,
+    "average_devanagari_output_length": 4.2,
+    "min_input_length": 3,
+    "max_input_length": 10,
+    "missing_values": 0,
+    "duplicate_count": 0
+  },
+  "translation": {
+    "total_parallel_pairs": 1465,
+    "split_counts": {
+      "train_dev": 1246,
+      "test": 219
+    },
+    "average_hindi_words": 6.37,
+    "average_marathi_words": 4.85,
+    "min_sentence_words": 1,
+    "max_sentence_words": 9,
+    "missing_values": 0,
+    "duplicate_count": 0,
+    "external_sources": [
+      "Lots-of-LoRAs",
+      "supergoose-flan",
+      "Waghya-colloquial"
+    ],
+    "grammar_pattern_coverage": {
+      "dative_subject": 0,
+      "continuous_aspect": 25,
+      "obligation_verb": 40,
+      "question_tag_ka": 15,
+      "neuter_gender": 252
+    }
+  },
+  "educational_learning_corpus": {
+    "total_educational_examples": 360,
+    "unique_topics_covered": 17,
+    "topic_breakdown": {
+      "greetings": 8,
+      "introductions": 6,
+      "college": 55,
+      "classroom": 4,
+      "friends": 4,
+      "family": 4,
+      "food": 4,
+      "shopping": 4,
+      "travel": 4,
+      "directions": 3,
+      "daily_routine": 244,
+      "requests": 3,
+      "questions": 4,
+      "feelings": 3,
+      "common_informal_conversation": 3,
+      "politeness_formality": 3,
+      "common_differences": 4
+    },
+    "difficulty_breakdown": {
+      "beginner": 180,
+      "intermediate": 180
+    },
+    "formality_breakdown": {
+      "formal": 17,
+      "neutral": 329,
+      "informal": 14
+    },
+    "verified_curated_examples": 360,
+    "missing_critical_fields": 0,
+    "duplicate_count": 0
+  }
+}

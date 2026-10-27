@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AnalyzeResponse } from '../types';
 import { 
   X, 
@@ -143,6 +143,18 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
+  useEffect(() => {
+    if (isOpen) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen || !data) return null;
 
   const primaryRule = data.grammar_explanation && data.grammar_explanation.length > 0
@@ -155,7 +167,12 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
     : (data.vocabulary && data.vocabulary.length > 0 ? data.vocabulary[0] : null);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Linguistic and Grammar Explanation Drawer"
+      className="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-2xl bg-slate-900 border-l border-slate-800 h-full overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/90 backdrop-blur-md z-10">

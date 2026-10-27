@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { BridgeModeSelector } from './components/BridgeModeSelector';
 import { TranslationCard } from './components/TranslationCard';
@@ -35,6 +35,50 @@ export default function App() {
   const [isExplainOpen, setIsExplainOpen] = useState(false);
   const [isPracticeOpen, setIsPracticeOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [reviewCount, setReviewCount] = useState<number>(0);
+
+  const analyzeReqId = useRef(0);
+  const analyzeController = useRef<AbortController | null>(null);
+  const invalidateAnalysis = () => {
+    analyzeReqId.current += 1;
+    analyzeController.current?.abort();
+    setLoading(false);
+    setAnalysisResult(null);
+  };
+  useEffect(() => () => analyzeController.current?.abort(), []);
+  const refreshProgress = () => api.getProgress().then(p => setReviewCount(p.review_due_count)).catch(() => {});
+  const transliterateReqId = useRef(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    api.getProgress()
+      .then((prog) => {
+        if (prog) {
+          if (typeof prog.review_due_count === 'number') {
+            setReviewCount(prog.review_due_count);
+          }
+          if (prog.bridge_mode_level && ['beginner', 'intermediate', 'advanced'].includes(prog.bridge_mode_level)) {
+            setBridgeLevel(prog.bridge_mode_level as BridgeLevel);
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback default
+      });
+  }, []);
+
+  const handleBridgeLevelChange = async (newLevel: BridgeLevel) => {
+    const prevLevel = bridgeLevel;
+    setBridgeLevel(newLevel);
+    try {
+      await api.updateBridgeMode(newLevel);
+    } catch (err) {
+      console.error("Failed to update bridge mode on server:", err);
+      setBridgeLevel(prevLevel);
+      setError(`Failed to update Bridge Mode to ${newLevel}. Reverted to ${prevLevel}.`);
+      setTimeout(() => setError(null), 5000);
+    }
+  };
 
   const quickSamples = [
     { label: 'Learn Marathi', text: 'Mujhe Marathi seekhni hai', s: 'hindi', t: 'marathi' },
@@ -45,56 +89,75 @@ export default function App() {
   ];
 
   const handleSwapLanguages = () => {
+    invalidateAnalysis();
     const nextSource = targetLang;
     const nextTarget = sourceLang;
     setSourceLang(nextSource);
     setTargetLang(nextTarget);
   };
 
-  const handleAnalyze = async (textToAnalyze?: string) => {
+  const handleAnalyze = async (
+    textToAnalyze?: string,
+    explicitSource?: Language,
+    explicitTarget?: Language,
+    openExplanation = false
+  ) => {
     const text = textToAnalyze || inputText;
     if (!text.trim()) return;
 
+    const effectiveSource = explicitSource || sourceLang;
+    const effectiveTarget = explicitTarget || targetLang;
+
+    const requestId = ++analyzeReqId.current;
+    analyzeController.current?.abort();
+    const controller = new AbortController();
+    analyzeController.current = controller;
     try {
       setLoading(true);
       setError(null);
-      const res = await api.analyze(text, sourceLang, targetLang, scriptMode);
+      const res = await api.analyze(text, effectiveSource, effectiveTarget, scriptMode, controller.signal);
+      if (requestId !== analyzeReqId.current) return;
+      if (openExplanation) setIsExplainOpen(true);
       setAnalysisResult(res);
-      if (res.detected_language === 'marathi' && sourceLang === 'hindi') {
+      if (res.detected_language === 'marathi' && effectiveSource === 'hindi') {
         setSourceLang('marathi');
         setTargetLang('hindi');
-      } else if (res.detected_language === 'hindi' && sourceLang === 'marathi') {
+      } else if (res.detected_language === 'hindi' && effectiveSource === 'marathi') {
         setSourceLang('hindi');
         setTargetLang('marathi');
       }
     } catch (err: any) {
+      if (controller.signal.aborted || requestId !== analyzeReqId.current) return;
       console.error(err);
       setError('Failed to analyze sentence. Ensure backend server is running.');
     } finally {
-      setLoading(false);
+      if (requestId === analyzeReqId.current) setLoading(false);
     }
   };
 
-  // Real-time quick transliteration preview
-  const handleInputChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setInputText(val);
-    if (!val.trim()) {
-      setTransliterationPreview('');
-      return;
+  // Every input/language change invalidates in-flight previews, including clearing.
+  useEffect(() => {
+    const requestId = ++transliterateReqId.current;
+    const controller = new AbortController();
+    setTransliterationPreview('');
+    if (inputText.trim() && /[a-zA-Z]/.test(inputText)) {
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          const result = await api.transliterate(inputText, sourceLang, 'latin_to_devanagari', controller.signal);
+          if (requestId === transliterateReqId.current) setTransliterationPreview(result.output);
+        } catch { /* The preview is optional; analysis errors are shown separately. */ }
+      }, 250);
     }
+    return () => {
+      ++transliterateReqId.current;
+      controller.abort();
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [inputText, sourceLang]);
 
-    try {
-      const isLatin = /^[a-zA-Z\s.,!?:;'-]+$/.test(val);
-      if (isLatin) {
-        const trans = await api.transliterate(val, sourceLang, 'latin_to_devanagari');
-        setTransliterationPreview(trans.output);
-      } else {
-        setTransliterationPreview('');
-      }
-    } catch {
-      // ignore quick preview errors
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    invalidateAnalysis();
+    setInputText(e.target.value);
   };
 
   return (
@@ -104,14 +167,14 @@ export default function App() {
         currentView={currentView}
         onChangeView={(v) => setCurrentView(v)}
         onOpenDashboard={() => setIsDashboardOpen(true)}
-        onOpenPractice={() => setCurrentView('learn')}
-        reviewCount={12}
+        onOpenPractice={() => setIsPracticeOpen(true)}
+        reviewCount={reviewCount}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {currentView === 'learn' ? (
-          <LearnHub />
+          <LearnHub onProgressChange={refreshProgress} />
         ) : (
           <>
             {/* Hero Section */}
@@ -131,7 +194,7 @@ export default function App() {
         {/* Bridge Mode Selector */}
         <BridgeModeSelector
           currentLevel={bridgeLevel}
-          onChange={(lvl) => setBridgeLevel(lvl)}
+          onChange={handleBridgeLevelChange}
         />
 
         {/* Language & Input Card */}
@@ -146,7 +209,7 @@ export default function App() {
                   <select
                     id="source-language-select"
                     value={sourceLang}
-                    onChange={(e) => setSourceLang(e.target.value as Language)}
+                    onChange={(e) => { invalidateAnalysis(); setSourceLang(e.target.value as Language); setTargetLang(e.target.value === "hindi" ? "marathi" : "hindi"); }}
                     className="appearance-none bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="hindi">Hindi</option>
@@ -173,7 +236,7 @@ export default function App() {
                   <select
                     id="target-language-select"
                     value={targetLang}
-                    onChange={(e) => setTargetLang(e.target.value as Language)}
+                    onChange={(e) => { invalidateAnalysis(); setTargetLang(e.target.value as Language); setSourceLang(e.target.value === "hindi" ? "marathi" : "hindi"); }}
                     className="appearance-none bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="marathi">Marathi</option>
@@ -231,10 +294,11 @@ export default function App() {
                 <button
                   key={idx}
                   onClick={() => {
+                    invalidateAnalysis();
                     setInputText(sample.text);
                     setSourceLang(sample.s as Language);
                     setTargetLang(sample.t as Language);
-                    handleAnalyze(sample.text);
+                    handleAnalyze(sample.text, sample.s as Language, sample.t as Language);
                   }}
                   className="text-xs px-3 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors"
                 >
@@ -253,11 +317,11 @@ export default function App() {
             <div className="flex items-center gap-3">
               <button
                 id="practice-btn-main"
-                onClick={() => setCurrentView('learn')}
+                onClick={() => setIsPracticeOpen(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white transition-all"
               >
                 <BookOpen className="w-4 h-4 text-indigo-400" />
-                <span>Practice</span>
+                <span>Quick Practice</span>
               </button>
 
               <button
@@ -266,7 +330,7 @@ export default function App() {
                   if (analysisResult) {
                     setIsExplainOpen(true);
                   } else {
-                    handleAnalyze();
+                    handleAnalyze(undefined, undefined, undefined, true);
                   }
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 transition-all"
@@ -334,13 +398,14 @@ export default function App() {
       <PracticeModal
         isOpen={isPracticeOpen}
         onClose={() => setIsPracticeOpen(false)}
+        onPracticeCompleted={refreshProgress}
       />
 
       {/* Progress Dashboard */}
       <ProgressDashboard
         isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
-        onBridgeLevelChange={(lvl) => setBridgeLevel(lvl)}
+        onBridgeLevelChange={handleBridgeLevelChange}
       />
 
       {/* Footer */}

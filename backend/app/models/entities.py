@@ -1,15 +1,18 @@
 import json
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.models.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     profiles = relationship("LanguageProfile", back_populates="user", cascade="all, delete-orphan")
     attempts = relationship("PracticeAttempt", back_populates="user", cascade="all, delete-orphan")
@@ -91,6 +94,22 @@ class LearningExample(Base):
     explanation = Column(Text, nullable=True)
 
 
+class ReviewedTranslation(Base):
+    """Human-reviewed exact sentence translation, independent of model output."""
+    __tablename__ = "reviewed_translations"
+    id = Column(Integer, primary_key=True)
+    source_language = Column(String(20), nullable=False)
+    target_language = Column(String(20), nullable=False)
+    source_key = Column(String(2000), nullable=False)
+    source_text = Column(Text, nullable=False)
+    target_text = Column(Text, nullable=False)
+    target_roman = Column(Text, nullable=True)
+    english_meaning = Column(Text, nullable=True)
+    provenance = Column(String(100), nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    __table_args__ = (UniqueConstraint("source_language", "target_language", "source_key", name="uq_reviewed_translation_source"),)
+
+
 class PracticeQuestion(Base):
     __tablename__ = "practice_questions"
 
@@ -117,7 +136,7 @@ class PracticeAttempt(Base):
     user_answer = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False)
     feedback = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     user = relationship("User", back_populates="attempts")
 
@@ -141,7 +160,7 @@ class Progress(Base):
     milestone_id = Column(Integer, ForeignKey("milestones.id"), nullable=False)
     completed_exercises = Column(Integer, default=0)
     status = Column(String(50), default="in_progress")
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now)
 
 
 class LearningSession(Base):
@@ -149,7 +168,7 @@ class LearningSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utc_now)
     ended_at = Column(DateTime, nullable=True)
     actions_count = Column(Integer, default=0)
 
@@ -161,13 +180,41 @@ class UserGamification(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-    xp = Column(Integer, default=280)
-    streak_days = Column(Integer, default=5)
+    xp = Column(Integer, default=0)
+    streak_days = Column(Integer, default=0)
     hearts = Column(Integer, default=3)
     max_hearts = Column(Integer, default=3)
     rank_title = Column(String(100), default="चहा मित्र (Chaha Mitra)")
-    unlocked_badges_json = Column(Text, default='["first_step"]')
-    blitz_high_score = Column(Integer, default=140)
-    completed_scrambles = Column(Integer, default=3)
+    unlocked_badges_json = Column(Text, default='[]')
+    blitz_high_score = Column(Integer, default=0)
+    completed_scrambles = Column(Integer, default=0)
     completed_scenarios_json = Column(Text, default='[]')
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now)
+
+
+class VocabularyReview(Base):
+    """Learner state is separate from the shared vocabulary dictionary."""
+    __tablename__ = "vocabulary_reviews"
+    __table_args__ = (UniqueConstraint("user_id", "word_id"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    word_id = Column(Integer, ForeignKey("vocabulary_words.id"), nullable=False)
+    box_level = Column(Integer, default=1, nullable=False)
+    repetition_count = Column(Integer, default=0, nullable=False)
+    last_reviewed_at = Column(DateTime, nullable=True)
+    next_review_at = Column(DateTime, nullable=False, index=True)
+
+
+class LearningActivity(Base):
+    """Durable, deduplicated learning events and reward claims (UTC days)."""
+    __tablename__ = "learning_activities"
+    __table_args__ = (UniqueConstraint("user_id", "event_key"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    event_key = Column(String(255), nullable=False)
+    kind = Column(String(50), nullable=False, index=True)
+    value = Column(Integer, default=1, nullable=False)
+    xp_awarded = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False, index=True)

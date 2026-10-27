@@ -83,7 +83,9 @@ class PhoneticTransliterationService(BaseTransliterationService):
         "जात": "jaat", "येत": "yet", "करत": "karat", "खात": "khaat",
         "उद्या": "udya", "काल": "kaal", "आज": "aaj", "आता": "aata",
         "कॉलेजला": "college-la", "कॉलेज": "college", "जायचं": "jaycha", "आहे।": "aahe.",
-        "शिकायची": "shikaychi", "पाहिजे": "pahije", "पाणी": "paani", "मराठी": "Marathi",
+        "शिकायची": "shikaychi", "पाहिजे": "pahije", "पाणी": "paani", "पानी": "paani",
+        "चाहिए": "chahiye", "चाहता": "chahta", "चाहती": "chahti", "चाहते": "chahte",
+        "कीजिए": "kijiye", "लीजिए": "lijiye", "दीजिए": "dijiye", "मराठी": "Marathi",
         "मला मराठी शिकायची आहे।": "Mala Marathi shikaychi aahe.",
         "मला उद्या कॉलेजला जायचं आहे।": "Mala udya college-la jaycha aahe.",
         "मी तिथे जात आहे।": "Mi tithe jaat aahe.",
@@ -227,8 +229,11 @@ class PhoneticTransliterationService(BaseTransliterationService):
 
     def _dev_word_to_latin(self, word: str) -> str:
         clean = word.strip(".,!?:;\"'()[]{}।")
+        punctuation = "".join([c for c in word if c in ".,!?:;\"'()[]{}।"])
+        punct_roman = "." if "।" in punctuation else punctuation
+
         if clean in self.COMMON_DEV_TO_LATIN:
-            return self.COMMON_DEV_TO_LATIN[clean]
+            return self.COMMON_DEV_TO_LATIN[clean] + punct_roman
 
         DEV_MAP = {
             'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo',
@@ -241,17 +246,17 @@ class PhoneticTransliterationService(BaseTransliterationService):
             'य': 'ya', 'र': 'ra', 'ल': 'la', 'ळ': 'la', 'व': 'va',
             'श': 'sha', 'ष': 'sha', 'स': 'sa', 'ह': 'ha', 'क्ष': 'ksha', 'ज्ञ': 'gya',
             'ा': 'a', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo', 'े': 'e',
-            'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ं': 'n', 'ँ': 'n', '्': '', '।': '.'
+            'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ं': 'n', 'ँ': 'n', '्': ''
         }
 
         out = []
         i = 0
-        while i < len(word):
-            ch = word[i]
+        while i < len(clean):
+            ch = clean[i]
             if ch in DEV_MAP:
                 # Handle inherent 'a' removal if followed by matra
                 val = DEV_MAP[ch]
-                if i + 1 < len(word) and word[i + 1] in ['ा', 'ि', 'ी', 'ु', 'ू', 'े', 'ै', 'ो', 'ौ', '्']:
+                if i + 1 < len(clean) and clean[i + 1] in ['ा', 'ि', 'ी', 'ु', 'ू', 'े', 'ै', 'ो', 'ौ', '्']:
                     if val.endswith('a'):
                         val = val[:-1]
                 out.append(val)
@@ -263,6 +268,10 @@ class PhoneticTransliterationService(BaseTransliterationService):
         # Clean double 'aa' if preceded by single
         res = re.sub(r'a{3,}', 'aa', res)
 
+        # Phonetic rule: convert -ie combinations like चाहिए, कीजिए to -iye
+        res = re.sub(r'([bcdfghjklmnpqrstvwxyz])hie\b', r'\1hiye', res)
+        res = re.sub(r'([bcdfghjklmnpqrstvwxyz])ie\b', r'\1iye', res)
+
         # Schwa Deletion Rule for modern Hindi & Marathi:
         # If the Devanagari word ends with a consonant that has no vowel matra,
         # the inherent Sanskrit final 'a' is dropped (e.g. घर -> ghar, not ghara; पास -> paas, not pasa).
@@ -270,32 +279,34 @@ class PhoneticTransliterationService(BaseTransliterationService):
         if clean and clean[-1] not in dev_vowels_matras and res.endswith('a') and len(res) > 2:
             res = res[:-1]
 
-        return res
+        return res + punct_roman
 
     def transliterate(self, text: str, language: str = "marathi", direction: str = "latin_to_devanagari") -> str:
-        if not text or not text.strip():
+        if not text:
             return ""
 
-        clean = text.strip()
-        # Sentence level exact match lookup
-        if direction == "latin_to_devanagari":
-            # Quick check if already Devanagari
-            if any('\u0900' <= c <= '\u097f' for c in clean):
-                return clean
+        tokens = re.split(r'([a-zA-Z]+|[\u0900-\u097F]+|[^a-zA-Z\u0900-\u097F]+)', text)
+        result = []
+        for tok in tokens:
+            if not tok:
+                continue
+            has_dev = any('\u0900' <= c <= '\u097f' for c in tok)
+            has_lat = any(('a' <= c <= 'z') or ('A' <= c <= 'Z') for c in tok)
 
-            words = clean.split()
-            out_words = [self._latin_word_to_dev(w, language) for w in words]
-            return " ".join(out_words)
-        else:
-            # devanagari_to_latin
-            if clean in self.COMMON_DEV_TO_LATIN:
-                return self.COMMON_DEV_TO_LATIN[clean]
+            if direction == "latin_to_devanagari":
+                if has_lat:
+                    result.append(self._latin_word_to_dev(tok, lang=language))
+                else:
+                    result.append(tok)
+            else:
+                if has_dev:
+                    result.append(self._dev_word_to_latin(tok))
+                else:
+                    result.append(tok)
 
-            words = clean.split()
-            out_words = [self._dev_word_to_latin(w) for w in words]
-            result = " ".join(out_words)
-            if not result.endswith('.') and clean.endswith('।'):
-                result += '.'
-            return result
+        out = "".join(result)
+        if direction == "devanagari_to_latin" and not out.endswith('.') and text.strip().endswith('।'):
+            out += '.'
+        return out
 
 phonetic_transliterator = PhoneticTransliterationService()

@@ -5,7 +5,11 @@ Manages learner vocabulary banks, Leitner box intervals, daily quests, and pronu
 
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from app.models.entities import VocabularyWord
+from datetime import timedelta
+from fastapi import HTTPException
+from sqlalchemy import or_, func
+from app.models.entities import VocabularyWord, VocabularyReview, LearningActivity
+from app.services.activity import now_utc, record_activity, award_daily_missions
 
 class SpacedRepetitionService:
     """
@@ -17,16 +21,19 @@ class SpacedRepetitionService:
     - Box 5: Mastered (30-day review)
     """
 
-    def get_review_queue(self, db: Session, limit: int = 20) -> List[Dict[str, Any]]:
-        """Returns words currently due for revision with rich bilingual context."""
-        due_words = db.query(VocabularyWord).filter(
-            VocabularyWord.is_due_for_review == True
-        ).limit(limit).all()
+    def _reviews(self, db, user_id=1):
+        return db.query(VocabularyWord, VocabularyReview).outerjoin(
+            VocabularyReview, (VocabularyReview.word_id == VocabularyWord.id) &
+            (VocabularyReview.user_id == user_id))
 
-        # If few due words, fetch more from Box 1 or Box 2 to ensure rich deck
-        if len(due_words) < 5:
-            additional = db.query(VocabularyWord).limit(limit).all()
-            due_words = additional
+    def _due(self, db, user_id=1, now=None):
+        return self._reviews(db, user_id).filter(or_(
+            VocabularyReview.id.is_(None), VocabularyReview.next_review_at <= (now or now_utc())))
+
+    def get_review_queue(self, db: Session, limit: int = 20, user_id: int = 1, now=None) -> List[Dict[str, Any]]:
+        """Returns words currently due for revision with rich bilingual context."""
+        due_words = self._due(db, user_id, now).order_by(
+            VocabularyReview.next_review_at, VocabularyWord.id).limit(limit).all()
 
         return [
             {
@@ -36,11 +43,11 @@ class SpacedRepetitionService:
                 "english_meaning": w.english_meaning,
                 "topic": w.topic,
                 "difficulty": w.difficulty,
-                "box_level": w.box_level or 1,
-                "repetition_count": w.repetition_count or 0,
+                "box_level": review.box_level if review else 1,
+                "repetition_count": review.repetition_count if review else 0,
                 "hindi_meaning": self._derive_hindi_meaning(w.devanagari, w.english_meaning)
             }
-            for w in due_words
+            for w, review in due_words
         ]
 
     def _derive_hindi_meaning(self, devanagari: str, english: str) -> str:
@@ -65,14 +72,11 @@ class SpacedRepetitionService:
         }
         return mapping.get(devanagari, english)
 
-    def get_due_count(self, db: Session) -> int:
+    def get_due_count(self, db: Session, user_id: int = 1, now=None) -> int:
         """Returns total count of words due for revision."""
-        count = db.query(VocabularyWord).filter(
-            VocabularyWord.is_due_for_review == True
-        ).count()
-        return count if count > 0 else 14
+        return self._due(db, user_id, now).count()
 
-    def record_review_result(self, db: Session, word_id: int, rating: str = "good") -> Dict[str, Any]:
+    def record_review_result(self, db: Session, word_id: int, rating: str = "good", user_id: int = 1, now=None) -> Dict[str, Any]:
         """
         Updates Leitner box level and review status based on attempt rating:
         - 'again': Box 1 (Reset)
@@ -82,48 +86,63 @@ class SpacedRepetitionService:
         """
         word = db.query(VocabularyWord).filter(VocabularyWord.id == word_id).first()
         if not word:
-            return {"status": "error", "message": "Word not found"}
+            raise HTTPException(404, "Word not found")
+        if rating not in {"again", "hard", "good", "easy"}:
+            raise HTTPException(422, "Unknown review rating")
+        now = now or now_utc()
+        review = db.query(VocabularyReview).filter_by(user_id=user_id, word_id=word_id).with_for_update().first()
+        if review is not None and review.next_review_at > now:
+            raise HTTPException(409, "This word is already reviewed. It will return when due.")
+        if review is None:
+            review = VocabularyReview(user_id=user_id, word_id=word_id, box_level=1,
+                                      repetition_count=0, next_review_at=now)
+            db.add(review)
 
-        word.repetition_count = (word.repetition_count or 0) + 1
-        current_box = word.box_level or 1
+        review.repetition_count += 1
+        current_box = review.box_level
 
         if rating == "again":
-            word.box_level = 1
-            word.is_due_for_review = True
+            review.box_level = 1
             interval_days = 1
         elif rating == "hard":
-            word.box_level = max(1, current_box)
-            word.is_due_for_review = True
+            review.box_level = max(1, current_box - 1)
             interval_days = 2
         elif rating == "easy":
-            word.box_level = 5
-            word.is_due_for_review = False
+            review.box_level = 5
             interval_days = 30
         else:  # "good"
-            word.box_level = min(5, current_box + 1)
-            word.is_due_for_review = word.box_level < 3
+            review.box_level = min(5, current_box + 1)
             intervals = {1: 1, 2: 3, 3: 7, 4: 14, 5: 30}
-            interval_days = intervals.get(word.box_level, 7)
+            interval_days = intervals[review.box_level]
+
+        review.last_reviewed_at = now
+        review.next_review_at = now + timedelta(days=interval_days)
+        xp = {"good": 15, "easy": 25}.get(rating, 0)
+        record_activity(db, f"review:{word_id}:{review.repetition_count}", "review", xp,
+                        user_id=user_id, now=now)
+        award_daily_missions(db, user_id, now)
 
         db.commit()
-        db.refresh(word)
+        db.refresh(review)
 
         return {
             "status": "success",
             "word_id": word.id,
-            "new_box": word.box_level,
-            "new_box_level": word.box_level,
-            "repetition_count": word.repetition_count,
+            "new_box": review.box_level,
+            "new_box_level": review.box_level,
+            "repetition_count": review.repetition_count,
+            "next_review_at": review.next_review_at.isoformat() + "Z",
+            "xp_awarded": xp,
             "next_review_days": interval_days,
-            "is_mastered": word.box_level == 5
+            "is_mastered": review.box_level == 5
         }
 
-    def get_box_statistics(self, db: Session) -> Dict[str, Any]:
+    def get_box_statistics(self, db: Session, user_id: int = 1) -> Dict[str, Any]:
         """Returns breakdown of words across Leitner boxes 1 to 5."""
-        all_words = db.query(VocabularyWord).all()
+        all_words = self._reviews(db, user_id).all()
         box_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        for w in all_words:
-            box = w.box_level if w.box_level in box_counts else 1
+        for w, review in all_words:
+            box = review.box_level if review and review.box_level in box_counts else 1
             box_counts[box] += 1
 
         total = len(all_words) or 1
@@ -144,8 +163,14 @@ class SpacedRepetitionService:
             ]
         }
 
-    def get_daily_quest_data(self, db: Session) -> Dict[str, Any]:
+    def get_daily_quest_data(self, db: Session, user_id: int = 1) -> Dict[str, Any]:
         """Provides Word of the Day, Idiom of the Day, and 3 Daily Quests."""
+        start = now_utc().replace(hour=0, minute=0, second=0, microsecond=0)
+        events = db.query(LearningActivity).filter(
+            LearningActivity.user_id == user_id, LearningActivity.created_at >= start).all()
+        reviews = sum(e.kind == "review" for e in events)
+        blitz = max((e.value for e in events if e.kind == "blitz"), default=0)
+        speech = sum(e.kind == "speech" for e in events)
         return {
             "word_of_the_day": {
                 "devanagari": "कडक",
@@ -172,8 +197,8 @@ class SpacedRepetitionService:
                     "marathi_title": "५ शब्दसंग्रह उजळणी",
                     "xp_reward": 30,
                     "target": 5,
-                    "current": 3,
-                    "completed": False,
+                    "current": min(5, reviews),
+                    "completed": reviews >= 5,
                     "icon": "📚"
                 },
                 {
@@ -182,8 +207,8 @@ class SpacedRepetitionService:
                     "marathi_title": "चहा टपरीत १५०+ गुण",
                     "xp_reward": 40,
                     "target": 150,
-                    "current": 140,
-                    "completed": False,
+                    "current": min(150, blitz),
+                    "completed": blitz >= 150,
                     "icon": "⚡"
                 },
                 {
@@ -192,8 +217,8 @@ class SpacedRepetitionService:
                     "marathi_title": "आवाज उच्चार सराव",
                     "xp_reward": 50,
                     "target": 1,
-                    "current": 0,
-                    "completed": False,
+                    "current": min(1, speech),
+                    "completed": speech >= 1,
                     "icon": "🎙️"
                 }
             ]

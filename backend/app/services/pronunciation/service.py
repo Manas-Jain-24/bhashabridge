@@ -6,6 +6,7 @@ Computes phonetic similarity, detects missed words, and provides syllable stress
 
 from typing import Dict, Any, List
 import re
+import unicodedata
 
 class PronunciationService:
     """
@@ -21,6 +22,8 @@ class PronunciationService:
 
         if not spoken_words or not target_words:
             return {
+                "spoken_text": spoken_text,
+                "target_phrase": target_phrase,
                 "accuracy_score": 0.0,
                 "feedback": "No speech detected. Please speak clearly into the microphone.",
                 "matched_words": [],
@@ -32,14 +35,16 @@ class PronunciationService:
         matched_words = []
         missing_words = []
 
+        remaining_words = list(spoken_words)
         for tw in target_words:
-            if tw in spoken_words:
+            if tw in remaining_words:
                 matched_words.append(tw)
+                remaining_words.remove(tw)
             else:
                 missing_words.append(tw)
 
         # Word-level accuracy
-        word_accuracy = (len(matched_words) / len(target_words)) * 100.0
+        word_accuracy = self._levenshtein_similarity(spoken_words, target_words) * 100.0
 
         # Character-level similarity for slight pronunciation deviations
         char_sim = self._levenshtein_similarity(clean_spoken, clean_target) * 100.0
@@ -49,7 +54,7 @@ class PronunciationService:
 
         # Feedback generation
         if composite_score >= 85:
-            feedback = "अस्सल उच्चार! (Native Pronunciation!) Crystal clear Marathi intonation and retroflex articulation."
+            feedback = "Your speech transcript closely matches the target. Listen to the example to compare pronunciation."
             is_native_pass = True
         elif composite_score >= 65:
             feedback = f"फार छान! (Very Good!) High comprehension. Pay special attention to missing words: {', '.join(missing_words) if missing_words else 'none'}."
@@ -70,8 +75,9 @@ class PronunciationService:
         }
 
     def _normalize(self, text: str) -> str:
-        t = re.sub(r'[^\w\s]', '', text.lower().strip())
-        return re.sub(r'\s+', ' ', t)
+        text = unicodedata.normalize("NFC", text.lower().strip())
+        t = ''.join(c if c.isspace() or unicodedata.category(c)[0] in "LMN" else ' ' for c in text)
+        return re.sub(r'\s+', ' ', t).strip()
 
     def _levenshtein_similarity(self, s1: str, s2: str) -> float:
         if s1 == s2:

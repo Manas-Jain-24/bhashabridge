@@ -85,6 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             id="practice-btn-nav"
+            aria-label="Open practice"
             onClick={onOpenPractice}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 transition-all shadow-sm"
           >
@@ -94,6 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             id="dashboard-btn-nav"
+            aria-label={`Open progress, ${reviewCount} words due for review`}
             onClick={onOpenDashboard}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-gradient-to-r from-indigo-950/40 to-slate-900/60 hover:from-indigo-900/60 hover:to-slate-800 border border-indigo-500/30 transition-all shadow-sm group"
           >

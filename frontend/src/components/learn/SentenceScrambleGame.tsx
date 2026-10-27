@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ScrambleQuestionItem, ScrambleTileItem } from '../../types';
 import { sfx } from '../../utils/soundEffects';
 import { triggerConfetti } from '../../utils/confetti';
@@ -16,7 +16,7 @@ import {
 
 interface SentenceScrambleGameProps {
   questions: ScrambleQuestionItem[];
-  onCompleteExercise: (xpEarned: number) => void;
+  onCompleteExercise: (exerciseId: string, tokens: string[]) => Promise<number>;
   onHeartLost: () => void;
 }
 
@@ -42,6 +42,9 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
   } | null>(null);
 
   const [showTip, setShowTip] = useState(false);
+  const saving = useRef(false);
+  const [savedXp, setSavedXp] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Switch question
   const loadQuestion = (index: number) => {
@@ -77,8 +80,9 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
     setEvaluation(null);
   };
 
-  const handleCheckAnswer = () => {
-    if (assembledTiles.length === 0) return;
+  const handleCheckAnswer = async () => {
+    if (assembledTiles.length === 0 || saving.current || evaluation?.isCorrect) return;
+    setSaveError(null);
 
     const assembledTokens = assembledTiles.map((t) => t.token);
     const targetTokens = currentQ.target_tokens;
@@ -92,6 +96,10 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
     const traps = assembledTiles.filter((t) => t.is_distractor);
 
     if (isExactMatch) {
+      saving.current = true;
+      try { setSavedXp(await onCompleteExercise(currentQ.id, assembledTokens)); }
+      catch { setSaveError('Could not save this exercise. Please check your connection and retry.'); return; }
+      finally { saving.current = false; }
       sfx.playSuccessChime();
       triggerConfetti();
       setEvaluation({
@@ -99,7 +107,7 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
         isCorrect: true,
         trapsTriggered: [],
       });
-      onCompleteExercise(25);
+
     } else {
       sfx.playErrorBuzz();
       setEvaluation({
@@ -127,6 +135,7 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+      {saveError && <p role="alert" className="text-rose-300 text-sm">{saveError}</p>}
       {/* Header & Question Tracker */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
@@ -260,7 +269,7 @@ export const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({
                 {evaluation.isCorrect ? (
                   <>
                     <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    <span>कडक! Perfectly assembled! (+25 XP)</span>
+                    <span>कडक! Perfectly assembled! (+{savedXp} XP)</span>
                   </>
                 ) : (
                   <>

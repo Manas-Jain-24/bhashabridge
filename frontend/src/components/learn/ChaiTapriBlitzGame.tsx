@@ -18,7 +18,7 @@ import {
 interface ChaiTapriBlitzGameProps {
   questions: BlitzQuestionItem[];
   highScore: number;
-  onGameEnd: (finalScore: number) => void;
+  onGameEnd: (finalScore: number, answers: { question_id: string; answer: boolean | number }[]) => Promise<number>;
 }
 
 export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
@@ -37,13 +37,27 @@ export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
     text: string;
   } | null>(null);
 
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const advanceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const scoreRef = useRef(0);
+  const answersRef = useRef<{ question_id: string; answer: boolean | number }[]>([]);
+  const activeRef = useRef(false);
+  const answerLocked = useRef(false);
+  const [savedXp, setSavedXp] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState(false);
 
   const currentQ = questions[currentIdx] || questions[0];
 
   // Start game loop
   const startGame = () => {
     sfx.playTileClick();
+    clearTimeout(advanceRef.current);
+    scoreRef.current = 0;
+    answersRef.current = [];
+    activeRef.current = true;
+    answerLocked.current = false;
+    setSavedXp(null);
+    setSaveError(false);
     setScore(0);
     setCombo(1);
     setTimeLeft(60);
@@ -52,31 +66,39 @@ export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
     setGameState('playing');
   };
 
-  useEffect(() => {
-    if (gameState === 'playing') {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            endGame();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [gameState]);
+  const saveResult = async () => {
+    setSaveError(false);
+    try { setSavedXp(await onGameEnd(scoreRef.current, answersRef.current)); }
+    catch { setSaveError(true); }
+  };
 
   const endGame = () => {
+    if (!activeRef.current) return;
+    activeRef.current = false;
+    clearInterval(timerRef.current);
+    clearTimeout(advanceRef.current);
     setGameState('gameover');
     sfx.playVictoryFanfare();
     triggerConfetti();
-    onGameEnd(score);
+    if (answersRef.current.length) void saveResult();
+    else setSavedXp(0);
   };
 
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    const deadline = Date.now() + 60000;
+    timerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (!remaining) endGame();
+    }, 200);
+    return () => { clearInterval(timerRef.current); clearTimeout(advanceRef.current); };
+  }, [gameState]);
+
   const handleAnswer = (userChoice: boolean | number) => {
-    if (gameState !== 'playing' || !currentQ) return;
+    if (!activeRef.current || !currentQ || answerLocked.current) return;
+    answerLocked.current = true;
+    answersRef.current.push({ question_id: currentQ.id, answer: userChoice });
 
     let isCorrect = false;
 
@@ -88,7 +110,8 @@ export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
 
     if (isCorrect) {
       const addedPoints = currentQ.points * combo;
-      setScore((s) => s + addedPoints);
+      scoreRef.current += addedPoints;
+      setScore(scoreRef.current);
       setCombo((c) => Math.min(5, c + 1));
       sfx.playComboFlame(combo);
       setFeedback({
@@ -105,7 +128,9 @@ export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
     }
 
     // Advance to next question after tiny delay
-    setTimeout(() => {
+    advanceRef.current = setTimeout(() => {
+      if (!activeRef.current) return;
+      answerLocked.current = false;
       setFeedback(null);
       setCurrentIdx((prev) => (prev + 1) % questions.length);
     }, 900);
@@ -181,7 +206,7 @@ export const ChaiTapriBlitzGame: React.FC<ChaiTapriBlitzGameProps> = ({
           )}
 
           <div className="text-xs text-indigo-300 pt-2 border-t border-slate-800">
-            Earned <span className="font-bold text-white">+{Math.max(20, Math.floor(score / 5))} XP</span> added to your profile!
+            {saveError ? <button onClick={saveResult} className="underline">Could not save score. Retry</button> : savedXp === null ? 'Saving score...' : `Saved. +${savedXp} XP, including any completed daily mission bonus.`}
           </div>
         </div>
 

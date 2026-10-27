@@ -14,9 +14,11 @@ export const api = {
     text: string,
     sourceLanguage: string = 'auto',
     targetLanguage: string = 'marathi',
-    preferredScript: ScriptMode = 'both'
+    preferredScript: ScriptMode = 'both',
+    signal?: AbortSignal
   ): Promise<AnalyzeResponse> {
     const res = await fetch(`${API_BASE}/analyze`, {
+      signal,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -33,9 +35,11 @@ export const api = {
   async transliterate(
     text: string,
     language: Language = 'marathi',
-    direction: 'latin_to_devanagari' | 'devanagari_to_latin' = 'latin_to_devanagari'
+    direction: 'latin_to_devanagari' | 'devanagari_to_latin' = 'latin_to_devanagari',
+    signal?: AbortSignal
   ): Promise<{ input: string; output: string; detected_script: string }> {
     const res = await fetch(`${API_BASE}/transliterate`, {
+      signal,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, language, direction }),
@@ -84,13 +88,15 @@ export const api = {
   async evaluatePractice(
     questionId: string,
     userAnswer: string,
-    userScript: string = 'roman'
+    userScript: string = 'roman',
+    selectedOptionId?: string
   ): Promise<PracticeEvaluateResponse> {
     const res = await fetch(`${API_BASE}/practice/evaluate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question_id: questionId,
+        selected_option_id: selectedOptionId,
         user_answer: userAnswer,
         user_script: userScript,
       }),
@@ -112,6 +118,10 @@ export const api = {
     badge_id?: string;
     score?: number;
     scenario_id?: string;
+    exercise_id?: string;
+    answer_tokens?: string[];
+    answers?: { question_id: string; answer: boolean | number }[];
+    choice_ids?: string[];
   }): Promise<import('../types').GamificationProfile> {
     const res = await fetch(`${API_BASE}/gamification/action`, {
       method: 'POST',

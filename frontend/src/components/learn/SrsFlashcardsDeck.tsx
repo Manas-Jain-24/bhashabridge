@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SrsWordItem, VocabularyBoxStatistics } from '../../types';
 import { api } from '../../services/api';
 import { speech } from '../../utils/speechEngine';
@@ -28,10 +28,14 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
   const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const ratingLock = useRef(false);
 
   const loadDeck = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [queueData, statsData] = await Promise.all([
         api.getSrsReviewQueue(20),
         api.getVocabularyBoxes(),
@@ -42,7 +46,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
       setIsFlipped(false);
       setIsCompleted(false);
     } catch (e) {
-      console.error(e);
+      setError('Could not load your reviews. Please retry.');
     } finally {
       setLoading(false);
     }
@@ -65,22 +69,22 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
   };
 
   const handleRate = async (rating: 'again' | 'hard' | 'good' | 'easy') => {
-    if (!currentCard) return;
-
-    if (rating === 'good' || rating === 'easy') {
-      sfx.playSuccessChime();
-      const xp = rating === 'easy' ? 25 : 15;
-      onXpEarned(xp);
-    } else {
-      sfx.playErrorBuzz();
-    }
-
+    if (!currentCard || ratingLock.current) return;
+    ratingLock.current = true;
+    setSaving(true);
+    setError(null);
     try {
-      await api.recordSrsReview(currentCard.id, rating);
-      // Refresh box statistics in background
+      const result = await api.recordSrsReview(currentCard.id, rating);
+      if (rating === 'good' || rating === 'easy') sfx.playSuccessChime();
+      else sfx.playErrorBuzz();
+      onXpEarned(result.xp_awarded ?? 0);
       api.getVocabularyBoxes().then(setBoxStats).catch(() => {});
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setError('Your review could not be saved. Please retry; your card has not advanced.');
+      return;
+    } finally {
+      ratingLock.current = false;
+      setSaving(false);
     }
 
     const nextIdx = currentIndex + 1;
@@ -94,6 +98,8 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
     }
   };
 
+  if (error && cards.length === 0) return <div role="alert" className="p-6 text-rose-300">{error} <button onClick={loadDeck} className="underline">Retry</button></div>;
+  if (!loading && cards.length === 0) return <div className="p-8 text-center text-slate-300">You are all caught up. Your words will return when their next review is due.</div>;
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-3 text-slate-400">
@@ -251,6 +257,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
         </div>
       </div>
 
+      {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
       {/* Leitner Rating Controls */}
       <div className="space-y-2">
         <div className="text-xs font-semibold text-slate-400 text-center">
@@ -259,7 +266,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <button
-            onClick={() => handleRate('again')}
+            disabled={saving} onClick={() => handleRate('again')}
             className="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/40 text-rose-200 shadow-sm transition-all hover:scale-105 active:scale-95"
           >
             <div className="font-extrabold">🔴 Again</div>
@@ -267,7 +274,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
           </button>
 
           <button
-            onClick={() => handleRate('hard')}
+            disabled={saving} onClick={() => handleRate('hard')}
             className="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-amber-950/60 hover:bg-amber-900/80 border border-amber-500/40 text-amber-200 shadow-sm transition-all hover:scale-105 active:scale-95"
           >
             <div className="font-extrabold">🟡 Hard</div>
@@ -275,7 +282,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
           </button>
 
           <button
-            onClick={() => handleRate('good')}
+            disabled={saving} onClick={() => handleRate('good')}
             className="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-indigo-200 shadow-sm transition-all hover:scale-105 active:scale-95"
           >
             <div className="font-extrabold">🟢 Good</div>
@@ -283,7 +290,7 @@ export const SrsFlashcardsDeck: React.FC<SrsFlashcardsDeckProps> = ({ onXpEarned
           </button>
 
           <button
-            onClick={() => handleRate('easy')}
+            disabled={saving} onClick={() => handleRate('easy')}
             className="py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-200 shadow-sm transition-all hover:scale-105 active:scale-95"
           >
             <div className="font-extrabold">🌟 Easy</div>

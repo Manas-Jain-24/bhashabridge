@@ -10,11 +10,15 @@ Powers:
 
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.models.entities import UserGamification, Progress, Milestone, LanguageProfile
+from app.models.entities import UserGamification, Progress, Milestone, LanguageProfile, LearningActivity
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from app.services.activity import get_profile, record_activity, current_streak, now_utc, award_daily_missions
+from app.services.progress.progression_engine import script_progression_engine
 from app.schemas.gamification import (
     GamificationProfileResponse, GamificationActionRequest,
     ScrambleQuestion, ScrambleTile, BlitzQuestion,
@@ -598,23 +602,8 @@ class GamificationService:
     """Service handling state, scores, scramble questions, blitz arcade, and scenarios."""
 
     def get_or_create_profile(self, db: Session, user_id: int = 1) -> UserGamification:
-        profile = db.query(UserGamification).filter(UserGamification.user_id == user_id).first()
-        if not profile:
-            profile = UserGamification(
-                user_id=user_id,
-                xp=320,
-                streak_days=5,
-                hearts=3,
-                max_hearts=3,
-                rank_title="चहा मित्र (Chaha Mitra)",
-                unlocked_badges_json=json.dumps(["first_step", "tapri_regular"], ensure_ascii=False),
-                blitz_high_score=140,
-                completed_scrambles=3,
-                completed_scenarios_json=json.dumps(["goodluck_chai"], ensure_ascii=False)
-            )
-            db.add(profile)
-            db.commit()
-            db.refresh(profile)
+        profile = get_profile(db, user_id)
+        db.commit()
         return profile
 
     def get_profile_dto(self, db: Session, user_id: int = 1) -> GamificationProfileResponse:
@@ -626,23 +615,13 @@ class GamificationService:
         level = 1
         next_xp = 500
         
-        for min_xp, max_xp, title in RANKS:
-            if min_xp <= user_xp <= max_xp:
+        for rank_level, (min_xp, max_xp, title) in enumerate(RANKS, start=1):
+            if min_xp <= user_xp <= max_xp or (rank_level == len(RANKS) and user_xp >= min_xp):
                 current_rank = title
+                level = rank_level
                 next_xp = max_xp + 1
                 break
         
-        if user_xp < 200:
-            level = 1
-        elif user_xp < 500:
-            level = 2
-        elif user_xp < 1000:
-            level = 3
-        elif user_xp < 2000:
-            level = 4
-        else:
-            level = 5
-
         badges = []
         if profile.unlocked_badges_json:
             try:
@@ -657,10 +636,14 @@ class GamificationService:
             except Exception:
                 scenarios = []
 
+        streak_days, streak_week = current_streak(db, user_id)
+        claimed = db.query(LearningActivity).filter_by(
+            user_id=user_id, event_key=f"chest:{now_utc().date()}").first() is not None
+
         return GamificationProfileResponse(
             xp=user_xp,
             level=level,
-            streak_days=profile.streak_days or 5,
+            streak_days=streak_days,
             hearts=profile.hearts if profile.hearts is not None else 3,
             max_hearts=profile.max_hearts or 3,
             rank_title=current_rank,
@@ -668,52 +651,107 @@ class GamificationService:
             blitz_high_score=profile.blitz_high_score or 0,
             completed_scrambles=profile.completed_scrambles or 0,
             completed_scenarios=scenarios,
-            next_level_xp=next_xp
+            next_level_xp=next_xp,
+            streak_week=streak_week,
+            daily_chest_claimed=claimed,
+            streak_freeze_count=0
         )
 
     def process_action(self, db: Session, req: GamificationActionRequest, user_id: int = 1) -> GamificationProfileResponse:
-        profile = self.get_or_create_profile(db, user_id)
-
-        if req.action_type == "xp_gain":
-            profile.xp = (profile.xp or 0) + (req.xp_amount or 10)
-        elif req.action_type == "heart_lost":
-            profile.hearts = max(0, (profile.hearts or 3) - 1)
-        elif req.action_type == "heart_refill":
-            profile.hearts = profile.max_hearts or 3
-        elif req.action_type == "unlock_badge" and req.badge_id:
-            try:
-                current_badges = json.loads(profile.unlocked_badges_json or "[]")
-            except Exception:
-                current_badges = []
-            if req.badge_id not in current_badges:
-                current_badges.append(req.badge_id)
-                profile.unlocked_badges_json = json.dumps(current_badges, ensure_ascii=False)
-                profile.xp = (profile.xp or 0) + 50  # Badge bonus
-        elif req.action_type == "blitz_score":
-            score = req.score or 0
-            if score > (profile.blitz_high_score or 0):
-                profile.blitz_high_score = score
-            profile.xp = (profile.xp or 0) + max(10, score // 5)
-        elif req.action_type == "complete_scramble":
-            profile.completed_scrambles = (profile.completed_scrambles or 0) + 1
-            profile.xp = (profile.xp or 0) + (req.xp_amount or 25)
-        elif req.action_type == "complete_scenario" and req.scenario_id:
-            try:
-                scenarios = json.loads(profile.completed_scenarios_json or "[]")
-            except Exception:
-                scenarios = []
-            if req.scenario_id not in scenarios:
-                scenarios.append(req.scenario_id)
-                profile.completed_scenarios_json = json.dumps(scenarios, ensure_ascii=False)
-            profile.xp = (profile.xp or 0) + (req.xp_amount or 75)
-
-        profile.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(profile)
-        return self.get_profile_dto(db, user_id)
+        try:
+            profile = get_profile(db, user_id)
+            initial_xp = profile.xp or 0
+            today = now_utc().date()
+            if req.action_type == "claim_chest":
+                record_activity(db, f"chest:{today}", "chest", 30, user_id=user_id)
+            elif req.action_type == "heart_lost":
+                profile.hearts = max(0, (profile.hearts if profile.hearts is not None else 3) - 1)
+            elif req.action_type == "heart_refill":
+                profile.hearts = profile.max_hearts
+            elif req.action_type == "complete_scramble":
+                question = next((q for q in SCRAMBLE_BANK if q["id"] == req.exercise_id), None)
+                if question is None or req.answer_tokens != question["target_tokens"]:
+                    raise HTTPException(422, "Submit the correct sentence tokens for a known exercise.")
+                if record_activity(db, f"scramble:{question['id']}", "scramble", 25, user_id=user_id):
+                    profile.completed_scrambles = (profile.completed_scrambles or 0) + 1
+            elif req.action_type == "blitz_score":
+                if not req.answers:
+                    raise HTTPException(422, "Submit answers so the server can calculate your score.")
+                bank = {q["id"]: q for q in BLITZ_QUESTIONS}
+                score, combo = 0, 1
+                # The question sequence repeats in bank order, as in the client.
+                for index, answer in enumerate(req.answers):
+                    question = bank.get(answer.question_id)
+                    expected_id = BLITZ_QUESTIONS[index % len(BLITZ_QUESTIONS)]["id"]
+                    if question is None or answer.question_id != expected_id:
+                        raise HTTPException(422, "Invalid blitz question sequence.")
+                    expected = question.get("is_true") if question["type"] == "true_false" else question["correct_index"]
+                    if type(answer.answer) is type(expected) and answer.answer == expected:
+                        score += question["points"] * combo
+                        combo = min(5, combo + 1)
+                    else:
+                        combo = 1
+                profile.blitz_high_score = max(profile.blitz_high_score or 0, score)
+                # Only improvements to today's best score earn additional XP.
+                event_key = f"blitz:{today}"
+                previous = db.query(LearningActivity).filter_by(user_id=user_id, event_key=event_key).first()
+                if previous is None:
+                    record_activity(db, event_key, "blitz", score // 5, value=score, user_id=user_id)
+                elif score > previous.value:
+                    reward = score // 5 - previous.xp_awarded
+                    profile.xp += max(0, reward)
+                    previous.value = score
+                    previous.xp_awarded = score // 5
+            elif req.action_type == "complete_scenario":
+                scenario = next((s for s in STREET_SCENARIOS if s["id"] == req.scenario_id), None)
+                if scenario is None or len(req.choice_ids) != len(scenario["steps"]):
+                    raise HTTPException(422, "Submit a choice for every step of a known scenario.")
+                choices = [next((c for c in step["choices"] if c["id"] == cid), None)
+                           for step, cid in zip(scenario["steps"], req.choice_ids)]
+                if any(c is None for c in choices):
+                    raise HTTPException(422, "Unknown scenario choice.")
+                reward = sum(c["xp_reward"] for c in choices)
+                if record_activity(db, f"scenario:{scenario['id']}", "scenario", reward, user_id=user_id):
+                    scenarios = json.loads(profile.completed_scenarios_json or "[]")
+                    if scenario["id"] not in scenarios:
+                        scenarios.append(scenario["id"])
+                    profile.completed_scenarios_json = json.dumps(scenarios)
+                    if all(c["is_best"] for c in choices):
+                        badges = json.loads(profile.unlocked_badges_json or "[]")
+                        if scenario["badge_id"] not in badges:
+                            badges.append(scenario["badge_id"])
+                        profile.unlocked_badges_json = json.dumps(badges)
+            profile.updated_at = now_utc()
+            award_daily_missions(db, user_id)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # A concurrent request already recorded this reward.
+            raise HTTPException(409, "This action was already recorded. Refresh your profile.")
+        except Exception:
+            db.rollback()
+            raise
+        result = self.get_profile_dto(db, user_id)
+        result.xp_awarded = max(0, profile.xp - initial_xp)
+        return result
 
     def get_skill_tree(self, db: Session, user_id: int = 1) -> List[SkillTreeNode]:
-        return [SkillTreeNode(**node) for node in SKILL_TREE_NODES]
+        roadmap = script_progression_engine.get_milestones_roadmap(db, user_id)
+        result = []
+        for milestone in roadmap:
+            template = next((n for n in SKILL_TREE_NODES if n["level"] == milestone["level_number"]), SKILL_TREE_NODES[0])
+            node = dict(template)
+            labels = ["नमस्कार आणि ओळख", "विनंत्या आणि गरजा", "कॉलेज आणि दिनक्रम", "दैनंदिन संभाषण", "व्याकरण आणि प्रत्यय", "देवनागरी वाचन आणि लेखन"]
+            concepts = [["Greetings", "Introductions"], ["Requests", "Needs"], ["College", "Daily routine"],
+                        ["Conversation", "Travel"], ["Grammar", "Postpositions"], ["Devanagari", "Script conversion"]]
+            node.update(marathi_title=labels[milestone["level_number"]], key_concepts=concepts[milestone["level_number"]])
+            node.update(id=milestone["id"], level=milestone["level_number"], title=milestone["title"],
+                        description=milestone["description"] or "",
+                        status=milestone["status"], exercises_count=milestone["total_exercises"],
+                        completed_count=milestone["completed_exercises"],
+                        stars=3 if milestone["status"] == "completed" else min(2, milestone["progress_percentage"] // 34))
+            result.append(SkillTreeNode(**node))
+        return result
 
     def get_scramble_questions(self) -> List[ScrambleQuestion]:
         results = []
@@ -739,10 +777,10 @@ class GamificationService:
                     trap_explanation=dist["trap_explanation"]
                 ))
 
-            # Shuffle tiles deterministically seeded by id for replayability or random
+            # Shuffle tiles deterministically using a local Random instance (no global random mutation)
             shuffled_tiles = list(tiles)
-            random.seed(42 + len(item["id"]))
-            random.shuffle(shuffled_tiles)
+            local_rng = random.Random(42 + len(item["id"]))
+            local_rng.shuffle(shuffled_tiles)
 
             results.append(ScrambleQuestion(
                 id=item["id"],

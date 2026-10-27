@@ -1,9 +1,11 @@
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from app.services.base import BaseTranslationService
 from app.services.transliteration.service import transliteration_service
+from app.services.translation.corpus import exclude_heldout
 
 class ModularTranslationService(BaseTranslationService):
     """
@@ -227,6 +229,11 @@ class ModularTranslationService(BaseTranslationService):
     def __init__(self):
         self._dataset_pairs: List[Dict[str, str]] = []
         self._load_dataset_pairs()
+        self._runtime_pairs = exclude_heldout(self.DEFAULT_PAIRS + self._dataset_pairs)
+        targets_by_source = defaultdict(set)
+        for pair in self._runtime_pairs:
+            targets_by_source[self._normalize_cmp(pair["hindi_dev"])].add(self._normalize_cmp(pair["marathi_dev"]))
+        self._ambiguous_hindi_sources = {source for source, targets in targets_by_source.items() if len(targets) > 1}
 
     def _load_dataset_pairs(self):
         base_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -247,21 +254,8 @@ class ModularTranslationService(BaseTranslationService):
             except Exception:
                 pass
 
-        ext_file = data_dir / "external_parallel_learning_index.json"
-        if ext_file.exists():
-            try:
-                with open(ext_file, "r", encoding="utf-8") as ef:
-                    ext_data = json.load(ef)
-                for item in ext_data:
-                    self._dataset_pairs.append({
-                        "hindi_dev": item.get("hindi", ""),
-                        "hindi_rom": "",
-                        "marathi_dev": item.get("marathi", ""),
-                        "marathi_rom": "",
-                        "english": item.get("english", "") or "Parallel sentence pair"
-                    })
-            except Exception:
-                pass
+        # External parallel data is noisy and unreviewed. It may be used to train
+        # a separate model, but must never answer an exact user query as a fact.
 
     def _normalize_cmp(self, text: str) -> str:
         clean = text.lower()
@@ -306,12 +300,12 @@ class ModularTranslationService(BaseTranslationService):
         norm_input = self._normalize_cmp(text)
 
         # 1. Check DEFAULT_PAIRS and loaded dataset pairs
-        all_pairs = self.DEFAULT_PAIRS + self._dataset_pairs
+        all_pairs = self._runtime_pairs
         for pair in all_pairs:
             if source_language == "hindi":
-                if norm_input in [self._normalize_cmp(pair["hindi_dev"]), self._normalize_cmp(pair["hindi_rom"])]:
+                if norm_input not in self._ambiguous_hindi_sources and norm_input in [self._normalize_cmp(pair["hindi_dev"]), self._normalize_cmp(pair["hindi_rom"])]:
                     marathi_dev = pair["marathi_dev"].rstrip("।") + "।"
-                    marathi_rom = pair["marathi_rom"]
+                    marathi_rom = pair["marathi_rom"] or transliteration_service.transliterate(marathi_dev, language="marathi", direction="devanagari_to_latin")
                     return {
                         "source_text": text,
                         "source_language": source_language,
@@ -319,12 +313,15 @@ class ModularTranslationService(BaseTranslationService):
                         "translation": marathi_dev if script == "devanagari" else marathi_rom,
                         "translation_native": marathi_dev,
                         "translation_roman": marathi_rom,
-                        "english_meaning": pair["english"]
+                        "english_meaning": pair["english"],
+                        "model_source": "curated_corpus",
+                        "engine": "curated_corpus",
+                        "fallback_used": False
                     }
             elif source_language == "marathi":
                 if norm_input in [self._normalize_cmp(pair["marathi_dev"]), self._normalize_cmp(pair["marathi_rom"])]:
                     hindi_dev = pair["hindi_dev"].rstrip("।") + "।"
-                    hindi_rom = pair["hindi_rom"]
+                    hindi_rom = pair["hindi_rom"] or transliteration_service.transliterate(hindi_dev, language="hindi", direction="devanagari_to_latin")
                     return {
                         "source_text": text,
                         "source_language": source_language,
@@ -332,7 +329,10 @@ class ModularTranslationService(BaseTranslationService):
                         "translation": hindi_dev if script == "devanagari" else hindi_rom,
                         "translation_native": hindi_dev,
                         "translation_roman": hindi_rom,
-                        "english_meaning": pair["english"]
+                        "english_meaning": pair["english"],
+                        "model_source": "curated_corpus",
+                        "engine": "curated_corpus",
+                        "fallback_used": False
                     }
 
         # 2. General Rule & Phrase Transfer
@@ -371,7 +371,7 @@ class ModularTranslationService(BaseTranslationService):
             if roman_tr:
                 roman_tr = roman_tr[0].upper() + roman_tr[1:]
 
-            eng = self._generate_english(dev_input, native_tr)
+            eng = ""
 
         else:
             # Marathi -> Hindi
@@ -401,7 +401,7 @@ class ModularTranslationService(BaseTranslationService):
             if roman_tr:
                 roman_tr = roman_tr[0].upper() + roman_tr[1:]
 
-            eng = self._generate_english(native_tr, dev_input)
+            eng = ""
 
         return {
             "source_text": text,
@@ -410,7 +410,10 @@ class ModularTranslationService(BaseTranslationService):
             "translation": native_tr if script == "devanagari" else roman_tr,
             "translation_native": native_tr,
             "translation_roman": roman_tr,
-            "english_meaning": eng
+            "english_meaning": eng,
+            "model_source": "rule_fallback",
+            "engine": "rule_fallback",
+            "fallback_used": False
         }
 
 modular_translator = ModularTranslationService()

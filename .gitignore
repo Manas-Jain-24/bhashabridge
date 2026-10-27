@@ -1,14 +1,63 @@
+# Python & Environments
 __pycache__/
 *.py[cod]
-*.class
+*$py.class
+*.so
+.venv/
 backend/.venv/
+env/
+venv/
+ENV/
+
+# Secrets & Environment Files (Protect all .env variants, except .env.example)
+.env
+.env.*
+*.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+bhashabridge.db
+test_*.db
+
+# Frontend Dependencies & Build Artifacts
 frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+dist/
+
+# Test & Coverage Artifacts
 .pytest_cache/
+.pytest_tmp/
+backend/.pytest_tmp/
+backend/.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & Temporary Files
+*.log
+logs/
+*.tmp
+*.bak
+bhashabridge_fixes.patch
+.DS_Store
+Thumbs.db
+
+# IDE & Editor Files
 .vscode/
 .idea/
-*.log
+*.swp
+*~
+
+# Data & Model Cache
 data/raw/
-.env
-backend/.env
-*.db
-*.sqlite3
+*.bin
+ml/**/weights/*.tmp

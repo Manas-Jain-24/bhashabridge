@@ -27,10 +27,10 @@ export const BridgeQuestMap: React.FC<BridgeQuestMapProps> = ({
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Bridge Quest • Duolingo-style Roadmap</span>
+              <span>Your Learning Roadmap</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Journey from Hindi Speaker to Marathi Native
+              Build Confidence in Marathi
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
               Conquer grammatical differences, eliminate false friends like <span className="text-amber-300 font-semibold">‘काल’</span> vs <span className="text-amber-300 font-semibold">‘उद्या’</span>, and graduate to authentic street fluency.

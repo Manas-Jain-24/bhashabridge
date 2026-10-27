@@ -127,6 +127,7 @@ export interface ProgressData {
 }
 
 export interface GamificationProfile {
+  xp_awarded: number;
   xp: number;
   level: number;
   streak_days: number;
@@ -138,6 +139,9 @@ export interface GamificationProfile {
   completed_scrambles: number;
   completed_scenarios: string[];
   next_level_xp: number;
+  streak_week?: boolean[];
+  daily_chest_claimed?: boolean;
+  streak_freeze_count?: number;
 }
 
 export interface ScrambleTileItem {
@@ -283,6 +287,7 @@ export interface DailyQuestData {
 }
 
 export interface PronunciationEvaluateResult {
+  xp_awarded: number;
   accuracy_score: number;
   spoken_text: string;
   target_phrase: string;

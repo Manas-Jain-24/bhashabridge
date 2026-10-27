@@ -70,10 +70,28 @@ def evaluate_transliteration(
     # Load Test Set
     test_ds = TransliterationDataset(str(test_file_path), src_vocab=src_vocab, tgt_vocab=tgt_vocab)
 
+    # Load Test raw records to extract language labels
+    lang_labels = []
+    if Path(test_file_path).exists():
+        with open(test_file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        obj = json.loads(line)
+                        lang_labels.append(obj.get("language", "unknown"))
+                    except Exception:
+                        lang_labels.append("unknown")
+
     total_char_dist = 0
     total_ref_chars = 0
     exact_matches = 0
     results: List[Dict] = []
+
+    # Per language accumulators
+    lang_metrics = {
+        "hi": {"char_dist": 0, "ref_chars": 0, "exact": 0, "total": 0},
+        "mr": {"char_dist": 0, "ref_chars": 0, "exact": 0, "total": 0}
+    }
 
     for idx in range(len(test_ds)):
         src_enc, tgt_enc, src_raw, tgt_raw = test_ds[idx]
@@ -89,7 +107,16 @@ def evaluate_transliteration(
         if is_exact:
             exact_matches += 1
 
+        cur_lang = lang_labels[idx] if idx < len(lang_labels) else "unknown"
+        if cur_lang in lang_metrics:
+            lang_metrics[cur_lang]["char_dist"] += dist
+            lang_metrics[cur_lang]["ref_chars"] += max(1, len(tgt_raw))
+            lang_metrics[cur_lang]["total"] += 1
+            if is_exact:
+                lang_metrics[cur_lang]["exact"] += 1
+
         results.append({
+            "language": cur_lang,
             "input_roman": src_raw,
             "expected_devanagari": tgt_raw,
             "predicted_devanagari": pred_str,
@@ -102,8 +129,22 @@ def evaluate_transliteration(
     em_acc = round((exact_matches / max(1, len(test_ds))) * 100, 2)
     wer = round(100.0 - em_acc, 2)
 
+    per_lang_summary = {}
+    for l_key, l_data in lang_metrics.items():
+        if l_data["total"] > 0:
+            l_em = round((l_data["exact"] / l_data["total"]) * 100, 2)
+            per_lang_summary[l_key] = {
+                "samples": l_data["total"],
+                "cer": round((l_data["char_dist"] / max(1, l_data["ref_chars"])) * 100, 2),
+                "exact_match_pct": l_em,
+                "wer": round(100.0 - l_em, 2)
+            }
+
     report = {
         "model": "CharSeq2Seq-BahdanauAttention",
+        "checkpoint_path": str(checkpoint_path),
+        "vocab_path": str(vocab_path),
+        "test_file_path": str(test_file_path),
         "parameters": sum(p.numel() for p in model.parameters()),
         "test_examples": len(test_ds),
         "metrics": {
@@ -113,6 +154,7 @@ def evaluate_transliteration(
             "total_character_edits": total_char_dist,
             "total_reference_characters": total_ref_chars
         },
+        "per_language_metrics": per_lang_summary,
         "sample_predictions": results[:10]
     }
 
@@ -125,6 +167,8 @@ def evaluate_transliteration(
     print(f"Character Error Rate   : {cer}% (CER)")
     print(f"Word Error Rate        : {wer}% (WER)")
     print(f"Exact Match Accuracy   : {em_acc}%")
+    for l_key, l_res in per_lang_summary.items():
+        print(f"  - {l_key.upper()} ({l_res['samples']} words): Exact Match = {l_res['exact_match_pct']}% | CER = {l_res['cer']}%")
     print(f"Report saved to        : {report_path}")
     print("===============================================================\n")
 

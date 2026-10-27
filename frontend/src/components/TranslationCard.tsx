@@ -35,15 +35,15 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
     }
     setSpeaking(true);
     const targetLang = data.detected_language === 'hindi' ? 'marathi' : 'hindi';
-    const textToSpeak = scriptMode === 'roman' ? data.translation_roman : data.translation_native;
+    const textToSpeak = data.translation_native;
     speech.speak(textToSpeak, targetLang, 0.85, () => {
       setSpeaking(false);
     });
   };
 
-  // Determine what text to emphasize based on Bridge Mode
-  const showDevanagari = scriptMode === 'devanagari' || scriptMode === 'both' || bridgeLevel === 'advanced';
-  const showRoman = scriptMode === 'roman' || scriptMode === 'both' || bridgeLevel === 'beginner' || bridgeLevel === 'intermediate';
+  // Determine what text to emphasize based on user script selection and Bridge Mode
+  const showDevanagari = scriptMode === 'devanagari' || (scriptMode === 'both' && bridgeLevel !== 'beginner');
+  const showRoman = scriptMode === 'roman' || (scriptMode === 'both' && bridgeLevel !== 'advanced');
 
   return (
     <div className="glass-panel-glow rounded-3xl p-6 md:p-8 space-y-6 relative overflow-hidden border border-indigo-500/30">
@@ -59,6 +59,13 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           </span>
           <span className="text-xs text-slate-400">
             Detected: <strong className="text-slate-300 capitalize">{data.detected_language}</strong> ({data.detected_script})
+          </span>
+          <span className="text-xs text-slate-400">
+            {data.model_source === 'reviewed_database' || data.model_source === 'curated_corpus'
+              ? 'Reviewed example'
+              : data.model_source === 'indictrans2-320m-neural'
+                ? 'AI translation'
+                : 'Rule translation'}
           </span>
         </div>
 
@@ -80,6 +87,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         </div>
       </div>
 
+      {data.model_source === 'rule_fallback' && <p className="text-xs text-amber-200">This is a rule-based approximation. Some wording may be incomplete; compare it with the lesson examples.</p>}
       {/* Main Translation Display */}
       <div className="space-y-4">
         {showDevanagari && (
@@ -106,14 +114,14 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         )}
       </div>
 
-      {/* English meaning */}
+      {/* Reviewed English gloss is available for curated examples. */}
       <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/60 flex items-start justify-between gap-4">
         <div>
           <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">
-            What does this mean?
+            English meaning
           </span>
           <p className="text-sm sm:text-base text-slate-200 font-medium">
-            "{data.english_meaning}"
+            {data.english_meaning ? `"${data.english_meaning}"` : 'Not available for this sentence yet.'}
           </p>
         </div>
 

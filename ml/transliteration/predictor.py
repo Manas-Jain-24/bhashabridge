@@ -4,14 +4,18 @@ Inference module wrapping the trained CharSeq2Seq Attention model.
 Provides word-level and sentence-level Roman -> Devanagari transliteration.
 """
 
+import os
 import re
 import json
+import logging
 from pathlib import Path
 from typing import Optional, List
 import torch
 
 from .dataset import CharVocab, PAD_IDX, SOS_IDX, EOS_IDX
 from .model import Encoder, Decoder, Seq2Seq
+
+logger = logging.getLogger(__name__)
 
 class NeuralTransliterator:
     """Inference wrapper for the trained character-level Seq2Seq transliteration model."""
@@ -28,9 +32,16 @@ class NeuralTransliterator:
         self.model = None
         self.src_vocab = None
         self.tgt_vocab = None
+        self.corpus_index = {}
+
+        if os.getenv("USE_MOCK_MODELS", "false").lower() == "true":
+            logger.info("USE_MOCK_MODELS is enabled; NeuralTransliterator running in mock mode.")
+            return
 
         if Path(weights_path).exists() and Path(vocab_path).exists():
             self._load(weights_path, vocab_path)
+        else:
+            logger.info("Transliteration model weights (%s) or vocab not found; using fallback.", weights_path)
 
     def _load(self, weights_path: str, vocab_path: str):
         base_dir = Path(__file__).resolve().parent
@@ -54,6 +65,7 @@ class NeuralTransliterator:
             corpus_path = base_dir.parent.parent / "data" / "processed" / "transliteration" / "train.jsonl"
             if corpus_path.exists():
                 try:
+                    count = 0
                     with open(corpus_path, "r", encoding="utf-8") as f:
                         for line in f:
                             if line.strip():
@@ -62,13 +74,17 @@ class NeuralTransliterator:
                                 d = obj.get("devanagari", "")
                                 if r and d and r not in self.corpus_index:
                                     self.corpus_index[r] = d
-                except Exception:
-                    pass
+                                    count += 1
+                                    if count >= 10000:
+                                        break
+                except Exception as c_err:
+                    logger.debug("Transliteration corpus cache loading skipped: %s", c_err)
 
             self.model.eval()
             self.is_loaded = True
+            logger.info("NeuralTransliterator loaded successfully on %s", self.device)
         except Exception as e:
-            print(f"[!] Warning: NeuralTransliterator could not load checkpoint: {e}")
+            logger.warning("NeuralTransliterator could not load checkpoint: %s (using phonetic rule fallback)", e)
             self.is_loaded = False
 
     def transliterate_word(self, roman_word: str, language: str = "hindi") -> str:

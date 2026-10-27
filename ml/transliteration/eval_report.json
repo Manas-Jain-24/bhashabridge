@@ -1,5 +1,8 @@
 {
   "model": "CharSeq2Seq-BahdanauAttention",
+  "checkpoint_path": "C:\\Users\\HP\\OneDrive\\Desktop\\bhashabridge\\bhashabridge\\ml\\transliteration\\weights\\seq2seq_translit.pt",
+  "vocab_path": "C:\\Users\\HP\\OneDrive\\Desktop\\bhashabridge\\bhashabridge\\ml\\transliteration\\vocab.json",
+  "test_file_path": "C:\\Users\\HP\\OneDrive\\Desktop\\bhashabridge\\bhashabridge\\data\\processed\\transliteration\\test.jsonl",
   "parameters": 1733228,
   "test_examples": 14,
   "metrics": {
@@ -9,8 +12,23 @@
     "total_character_edits": 13,
     "total_reference_characters": 58
   },
+  "per_language_metrics": {
+    "hi": {
+      "samples": 5,
+      "cer": 44.44,
+      "exact_match_pct": 0.0,
+      "wer": 100.0
+    },
+    "mr": {
+      "samples": 9,
+      "cer": 12.5,
+      "exact_match_pct": 55.56,
+      "wer": 44.44
+    }
+  },
   "sample_predictions": [
     {
+      "language": "hi",
       "input_roman": "samay",
       "expected_devanagari": "समय",
       "predicted_devanagari": "समाय",
@@ -19,6 +37,7 @@
       "char_len": 3
     },
     {
+      "language": "mr",
       "input_roman": "aamhala",
       "expected_devanagari": "आम्हाला",
       "predicted_devanagari": "आम्हाला",
@@ -27,6 +46,7 @@
       "char_len": 7
     },
     {
+      "language": "hi",
       "input_roman": "aap",
       "expected_devanagari": "आप",
       "predicted_devanagari": "प",
@@ -35,6 +55,7 @@
       "char_len": 2
     },
     {
+      "language": "hi",
       "input_roman": "kya",
       "expected_devanagari": "क्या",
       "predicted_devanagari": "या",
@@ -43,6 +64,7 @@
       "char_len": 4
     },
     {
+      "language": "mr",
       "input_roman": "udya",
       "expected_devanagari": "उद्या",
       "predicted_devanagari": "उद्या",
@@ -51,6 +73,7 @@
       "char_len": 5
     },
     {
+      "language": "hi",
       "input_roman": "pani",
       "expected_devanagari": "पानी",
       "predicted_devanagari": "पणी",
@@ -59,6 +82,7 @@
       "char_len": 4
     },
     {
+      "language": "mr",
       "input_roman": "aaj",
       "expected_devanagari": "आज",
       "predicted_devanagari": "जज",
@@ -67,6 +91,7 @@
       "char_len": 2
     },
     {
+      "language": "mr",
       "input_roman": "ghari",
       "expected_devanagari": "घरी",
       "predicted_devanagari": "घरी",
@@ -75,6 +100,7 @@
       "char_len": 3
     },
     {
+      "language": "mr",
       "input_roman": "kadhi",
       "expected_devanagari": "कधी",
       "predicted_devanagari": "ढी",
@@ -83,6 +109,7 @@
       "char_len": 3
     },
     {
+      "language": "mr",
       "input_roman": "khup",
       "expected_devanagari": "खूप",
       "predicted_devanagari": "खुप",

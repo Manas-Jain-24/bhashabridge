@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 
 class VocabularyItem(BaseModel):
@@ -26,10 +26,10 @@ class ExampleItem(BaseModel):
     english_translation: str
 
 class AnalyzeRequest(BaseModel):
-    text: str = Field(..., description="Sentence or phrase to analyze")
-    source_language: str = Field("auto", description="auto, hindi, or marathi")
-    target_language: str = Field("marathi", description="marathi or hindi")
-    preferred_script: str = Field("both", description="devanagari, roman, or both")
+    text: str = Field(..., min_length=1, max_length=2000, description="Sentence or phrase to analyze")
+    source_language: Literal["hindi", "marathi", "auto"] = Field("auto", description="auto, hindi, or marathi")
+    target_language: Literal["marathi", "hindi"] = Field("marathi", description="marathi or hindi")
+    preferred_script: Literal["both", "devanagari", "roman", "latin"] = Field("both", description="devanagari, roman, or both")
 
 class AnalyzeResponse(BaseModel):
     detected_language: str

@@ -1,0 +1,135 @@
+{
+  "evaluation_name": "BhashaBridge Translation Evaluation Suite",
+  "evaluated_engine": "modular_fallback (curated corpus + phonetic/rule transfer)",
+  "fallback_activated": true,
+  "engine_breakdown": {
+    "indictrans2-320m-neural": 3,
+    "curated_corpus": 435
+  },
+  "test_dataset": "data\\processed\\translation\\test.jsonl",
+  "total_test_samples": 219,
+  "metrics_summary": {
+    "hindi_to_marathi": {
+      "avg_bleu": 96.16,
+      "avg_chrf": 98.17,
+      "exact_match_rate_pct": 97.72
+    },
+    "marathi_to_hindi": {
+      "avg_bleu": 97.69,
+      "avg_chrf": 99.59,
+      "exact_match_rate_pct": 99.54
+    },
+    "aggregate": {
+      "mean_bleu": 96.92,
+      "mean_chrf": 98.88
+    }
+  },
+  "sample_evaluations": {
+    "hindi_to_marathi_samples": [
+      {
+        "source": "लगभगदो घंटे तक चली इस बैठक में केन्द्र सरकार के वरिष्ठ मंत्रीगण, अरुणाचल प्रदेश, हिमाचल प्रदेश, और गुजरात के मुख्यमंत्री, तथा समिति के अन्य सदस्यों ने भाग लिया",
+        "reference": "2017-18 या वर्षात सर्वोच्च निर्यात वाढ नोंदवण्यात आल्याचे सांगत ती गेल्या 6 वर्षातील सर्वोच्च असल्याचे प्रभू यांनी सांगितले.",
+        "prediction": "Â گجرات सरकार आ केन्द्र सरकार लगभग एहि बैठक धरि चलल हिमाचल आ अरुणाचल प्रदेश समिति के अन्य वरिष्ठ मंत्री सभ मे भाग लेलनि ।",
+        "engine": "indictrans2-320m-neural",
+        "fallback_used": false,
+        "bleu": 4.26,
+        "chrf": 10.92,
+        "exact_match": false
+      },
+      {
+        "source": "भारतीय सैनिकों ने सेवा की है ताकि अफ्रीकी बच्चे शांति का भविष्य देख सकें।",
+        "reference": "अफ्रिकी मुलांना शांतीचा अनुभव भविष्यात घेता यावा, यासाठी भारतीय सैनिकांनी सेवा दिली आहे.",
+        "prediction": "भारतीय बच्चे के भविष्य को अफ्रीकी सैनिकों द्वारा शांति की सेवा करने के लिए देखा जा सकता है ।",
+        "engine": "indictrans2-320m-neural",
+        "fallback_used": false,
+        "bleu": 7.54,
+        "chrf": 27.94,
+        "exact_match": false
+      },
+      {
+        "source": "आप में भी, आप में भी वो सामर्थ्य है।",
+        "reference": "आपल्यामध्येही असा प्रयत्न करण्याचे सामर्थ्य आहे.",
+        "prediction": "आपल्यामध्येही असा प्रयत्न करण्याचे सामर्थ्य आहे.।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "ध्यान दो (Dhyan Do)",
+        "reference": "लक्ष द्या (Lakshya Dya)",
+        "prediction": "लक्ष द्या (Lakshya Dya)।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "Consider Input: इस Team के प्रति देशवासियों का आदर भाव कैसे बढ़े?",
+        "reference": "Output: या टीमप्रति देशबांधवांच्या आदरभावना कशा वाढतील?",
+        "prediction": "Output: या टीमप्रति देशबांधवांच्या आदरभावना कशा वाढतील?।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      }
+    ],
+    "marathi_to_hindi_samples": [
+      {
+        "source": "2017-18 या वर्षात सर्वोच्च निर्यात वाढ नोंदवण्यात आल्याचे सांगत ती गेल्या 6 वर्षातील सर्वोच्च असल्याचे प्रभू यांनी सांगितले.",
+        "reference": "लगभगदो घंटे तक चली इस बैठक में केन्द्र सरकार के वरिष्ठ मंत्रीगण, अरुणाचल प्रदेश, हिमाचल प्रदेश, और गुजरात के मुख्यमंत्री, तथा समिति के अन्य सदस्यों ने भाग लिया",
+        "prediction": "प्रभुए कहा कि निर्यात में वृद्धि इस वर्ष दर्ज की गई है, जो पिछले वर्ष 6.18 से सबसे अधिक है ।",
+        "engine": "indictrans2-320m-neural",
+        "fallback_used": false,
+        "bleu": 4.53,
+        "chrf": 10.06,
+        "exact_match": false
+      },
+      {
+        "source": "अफ्रिकी मुलांना शांतीचा अनुभव भविष्यात घेता यावा, यासाठी भारतीय सैनिकांनी सेवा दिली आहे.",
+        "reference": "भारतीय सैनिकों ने सेवा की है ताकि अफ्रीकी बच्चे शांति का भविष्य देख सकें।",
+        "prediction": "भारतीय सैनिकों ने सेवा की है ताकि अफ्रीकी बच्चे शांति का भविष्य देख सकें।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "आपल्यामध्येही असा प्रयत्न करण्याचे सामर्थ्य आहे.",
+        "reference": "आप में भी, आप में भी वो सामर्थ्य है।",
+        "prediction": "आप में भी, आप में भी वो सामर्थ्य है।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "लक्ष द्या (Lakshya Dya)",
+        "reference": "ध्यान दो (Dhyan Do)",
+        "prediction": "ध्यान दो (Dhyan Do)।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      },
+      {
+        "source": "Output: या टीमप्रति देशबांधवांच्या आदरभावना कशा वाढतील?",
+        "reference": "Consider Input: इस Team के प्रति देशवासियों का आदर भाव कैसे बढ़े?",
+        "prediction": "Consider Input: इस Team के प्रति देशवासियों का आदर भाव कैसे बढ़े?।",
+        "engine": "curated_corpus",
+        "fallback_used": true,
+        "bleu": 100.0,
+        "chrf": 100.0,
+        "exact_match": true
+      }
+    ]
+  },
+  "valid_for_unseen_quality": false,
+  "invalidation_reason": "All 219 test pairs were present in the runtime retrieval index."
+}

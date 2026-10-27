@@ -27,9 +27,9 @@ class ScriptProgressionEngine:
         """
         Calculates composite script proficiency and recommends next Bridge Mode step.
         """
-        rec = profile.devanagari_recognition or 0.3
-        read = profile.devanagari_reading or 0.2
-        bridge = profile.roman_to_devanagari or 0.35
+        rec = profile.devanagari_recognition or 0.0
+        read = profile.devanagari_reading or 0.0
+        bridge = profile.roman_to_devanagari or 0.0
 
         # Weighted script mastery score (Principle 2)
         composite_script_score = round((0.4 * rec + 0.3 * read + 0.3 * bridge) * 100, 1)
@@ -72,8 +72,8 @@ class ScriptProgressionEngine:
         """
         milestones = db.query(Milestone).order_by(Milestone.level).all()
         user_progress = db.query(Progress).filter(Progress.user_id == user_id).first()
-        active_id = user_progress.milestone_id if user_progress else 3
-        active_completed = user_progress.completed_exercises if user_progress else 7
+        active_id = user_progress.milestone_id if user_progress else (milestones[0].id if milestones else 0)
+        active_completed = user_progress.completed_exercises if user_progress else 0
 
         roadmap = []
         for m in milestones:
@@ -81,7 +81,7 @@ class ScriptProgressionEngine:
                 status = "completed"
                 completed = m.total_exercises
             elif m.id == active_id:
-                status = "in_progress"
+                status = "completed" if user_progress and user_progress.status == "completed" else "in_progress"
                 completed = min(active_completed, m.total_exercises)
             else:
                 status = "locked"

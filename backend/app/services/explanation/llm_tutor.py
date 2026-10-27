@@ -2,10 +2,7 @@ import os
 import json
 import logging
 from typing import Optional, Dict, Any, List
-from dotenv import load_dotenv
-
-load_dotenv("backend/.env")
-load_dotenv(".env")
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +15,9 @@ class GeminiLinguisticTutor:
     """
 
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.api_key = settings.GEMINI_API_KEY
         self._client = None
-        if self.api_key:
+        if self._is_valid_key(self.api_key):
             try:
                 from google import genai
                 self._client = genai.Client(api_key=self.api_key)
@@ -29,18 +26,30 @@ class GeminiLinguisticTutor:
                 logger.warning("Could not initialize Gemini Client (%s). Using local rule engine.", e)
                 self._client = None
 
+    def _is_valid_key(self, key: Optional[str]) -> bool:
+        if not key or not key.strip():
+            return False
+        clean = key.strip().lower()
+        if clean.startswith("your_") or "placeholder" in clean or "dummy" in clean:
+            return False
+        if settings.USE_MOCK_MODELS or settings.TESTING:
+            return False
+        return True
+
     @property
     def is_available(self) -> bool:
-        # Check dynamically in case environment variable was set after startup
-        if not self._client:
+        if settings.TESTING or settings.USE_MOCK_MODELS:
+            return False
+        if not self._is_valid_key(self.api_key):
             env_key = os.getenv("GEMINI_API_KEY")
-            if env_key:
-                try:
-                    from google import genai
-                    self.api_key = env_key
-                    self._client = genai.Client(api_key=env_key)
-                except Exception:
-                    return False
+            if not self._is_valid_key(env_key):
+                return False
+            try:
+                from google import genai
+                self.api_key = env_key
+                self._client = genai.Client(api_key=env_key)
+            except Exception:
+                return False
         return self._client is not None
 
     def explain(
@@ -92,7 +101,7 @@ Return ONLY a valid JSON object with the following keys:
 }}
 """
 
-        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
+        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash-lite"]
         for model_name in models_to_try:
             try:
                 response = self._client.models.generate_content(

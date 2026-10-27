@@ -1,14 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.models.database import get_db
 from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
 from app.services.language_detection.detector import language_detector
 from app.services.transliteration.service import transliteration_service
-from app.services.translation.service import translation_service
+from app.services.translation.service import translate_with_memory
 from app.services.explanation.engine import explanation_engine
 
 router = APIRouter()
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze_text(request: AnalyzeRequest):
+def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
     """
     Principle 1 Implementation:
     INPUT -> Language/script detection -> Transliteration -> Translation
@@ -51,7 +53,7 @@ def analyze_text(request: AnalyzeRequest):
         )
 
     # Translate
-    trans_result = translation_service.translate(
+    trans_result = translate_with_memory(db,
         text=native_source,
         source_language=detected_language,
         target_language=target_lang,

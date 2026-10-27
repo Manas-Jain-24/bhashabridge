@@ -1,7 +1,8 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 class GamificationProfileResponse(BaseModel):
+    xp_awarded: int = 0
     xp: int
     level: int
     streak_days: int
@@ -13,13 +14,26 @@ class GamificationProfileResponse(BaseModel):
     completed_scrambles: int
     completed_scenarios: List[str]
     next_level_xp: int = 500
+    streak_week: List[Dict[str, Any]] = []
+    daily_chest_claimed: bool = False
+    streak_freeze_count: int = 1
+
+class BlitzAnswer(BaseModel):
+    question_id: str = Field(max_length=100)
+    answer: bool | int
+
 
 class GamificationActionRequest(BaseModel):
-    action_type: str = Field(..., description="xp_gain, heart_lost, heart_refill, unlock_badge, blitz_score, complete_scramble, complete_scenario")
-    xp_amount: Optional[int] = 0
+    action_type: Literal["heart_lost", "heart_refill", "blitz_score", "complete_scramble", "complete_scenario", "claim_chest"]
+    # Legacy display fields are accepted but never determine rewards.
+    xp_amount: int = Field(0, ge=0, le=500)
     badge_id: Optional[str] = None
-    score: Optional[int] = 0
+    score: int = Field(0, ge=0, le=100000)
     scenario_id: Optional[str] = None
+    exercise_id: Optional[str] = Field(None, max_length=100)
+    answer_tokens: List[str] = Field(default_factory=list, max_length=50)
+    answers: List[BlitzAnswer] = Field(default_factory=list, max_length=70)
+    choice_ids: List[str] = Field(default_factory=list, max_length=20)
 
 class ScrambleTile(BaseModel):
     id: str

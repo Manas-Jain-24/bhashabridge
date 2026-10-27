@@ -219,23 +219,21 @@ def main():
             f.write(json.dumps(p, ensure_ascii=False) + "\n")
     print(f"[*] Saved raw ingested dataset to {raw_output_file}")
 
-    # 6. Save Learning Index for Explanation Engine
+    # Split first. The runtime index must never contain held-out sources.
+    import sys
+    sys.path.insert(0, str(BASE_DIR / "backend"))
+    from app.services.translation.corpus import sources, exclude_heldout
+    shuffled = clean_pairs.copy()
+    random.Random(42).shuffle(shuffled)
+    test_size = min(500, max(1, int(0.15 * len(shuffled)))) if len(shuffled) > 1 else 0
+    test_set = shuffled[-test_size:] if test_size else []
+    candidates = shuffled[:-test_size] if test_size else shuffled
+    forbidden = ({sources(p)[0] for p in test_set}, {sources(p)[1] for p in test_set})
+    train_dev = exclude_heldout(candidates, forbidden)
     learning_index_file = PROCESSED_LEARN_DIR / "external_parallel_learning_index.json"
     with open(learning_index_file, "w", encoding="utf-8") as f:
-        json.dump(clean_pairs, f, ensure_ascii=False, indent=2)
-    print(f"[*] Saved explanation learning index to {learning_index_file}")
+        json.dump(train_dev, f, ensure_ascii=False, indent=2)
 
-    # 7. Update Translation splits (Train/Dev and Test)
-    # Shuffle deterministically
-    random.seed(42)
-    shuffled = clean_pairs.copy()
-    random.shuffle(shuffled)
-    
-    # Keep 15% for held-out evaluation
-    test_size = min(500, int(0.15 * len(shuffled)))
-    train_dev = shuffled[:-test_size]
-    test_set = shuffled[-test_size:]
-    
     train_file = PROCESSED_TRANS_DIR / "hindi_marathi.jsonl"
     with open(train_file, "w", encoding="utf-8") as f:
         for r in train_dev:

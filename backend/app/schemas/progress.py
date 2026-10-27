@@ -1,3 +1,4 @@
+from typing import Literal
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
@@ -35,7 +36,7 @@ class MilestoneRoadmapItem(BaseModel):
     is_active: bool
 
 class BridgeModeUpdateRequest(BaseModel):
-    mode: str = Field(..., description="beginner, intermediate, or advanced")
+    mode: Literal["beginner", "intermediate", "advanced"] = Field(..., description="beginner, intermediate, or advanced")
 
 class ProgressResponse(BaseModel):
     target_language: str

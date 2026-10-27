@@ -14,6 +14,7 @@ import { ChaiTapriBlitzGame } from './learn/ChaiTapriBlitzGame';
 import { StreetScenarioRoleplay } from './learn/StreetScenarioRoleplay';
 import { SrsFlashcardsDeck } from './learn/SrsFlashcardsDeck';
 import { DailyQuestsAndPronunciation } from './learn/DailyQuestsAndPronunciation';
+import { PracticeModal } from './PracticeModal';
 import {
   Flame,
   Heart,
@@ -32,8 +33,10 @@ import {
 
 type LearnTabMode = 'quest' | 'scramble' | 'blitz' | 'scenarios' | 'flashcards' | 'voice_studio';
 
-export const LearnHub: React.FC = () => {
+export const LearnHub: React.FC<{ onProgressChange?: () => void }> = ({ onProgressChange }) => {
   const [activeTab, setActiveTab] = useState<LearnTabMode>('quest');
+  const [practiceOpen, setPracticeOpen] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,16 +85,22 @@ export const LearnHub: React.FC = () => {
     if (!muted) sfx.playTileClick();
   };
 
-  const handleXpEarned = async (amount: number) => {
+  const handleXpEarned = async (_amount = 0) => {
     try {
-      const updated = await api.recordGamificationAction({
-        action_type: 'xp_gain',
-        xp_amount: amount,
-      });
-      setProfile(updated);
-    } catch (e) {
-      console.error(e);
-    }
+      setProfile(await api.getGamificationProfile());
+      setSkillTree(await api.getSkillTree());
+      onProgressChange?.();
+      setRefreshError(null);
+    } catch { setRefreshError('Your activity was saved. Could not refresh the summary; reopen the hub to retry.'); }
+  };
+
+  const handleScrambleComplete = async (exerciseId: string, answerTokens: string[]) => {
+    const updated = await api.recordGamificationAction({
+      action_type: 'complete_scramble', exercise_id: exerciseId, answer_tokens: answerTokens,
+    });
+    setProfile(updated);
+    onProgressChange?.();
+    return updated.xp_awarded;
   };
 
   const handleHeartLost = async () => {
@@ -118,34 +127,19 @@ export const LearnHub: React.FC = () => {
     }
   };
 
-  const handleBlitzEnd = async (finalScore: number) => {
-    try {
-      const updated = await api.recordGamificationAction({
-        action_type: 'blitz_score',
-        score: finalScore,
-      });
-      setProfile(updated);
-    } catch (e) {
-      console.error(e);
-    }
+  const handleBlitzEnd = async (_finalScore: number, answers: { question_id: string; answer: boolean | number }[]) => {
+    const updated = await api.recordGamificationAction({ action_type: 'blitz_score', answers });
+    setProfile(updated);
+    return updated.xp_awarded;
   };
 
-  const handleCompleteScenario = async (
-    scenarioId: string,
-    badgeId: string,
-    xpEarned: number
-  ) => {
-    try {
-      const updated = await api.recordGamificationAction({
-        action_type: 'complete_scenario',
-        scenario_id: scenarioId,
-        badge_id: badgeId,
-        xp_amount: xpEarned,
-      });
-      setProfile(updated);
-    } catch (e) {
-      console.error(e);
-    }
+  const handleCompleteScenario = async (scenarioId: string, choiceIds: string[]) => {
+    const updated = await api.recordGamificationAction({
+      action_type: 'complete_scenario', scenario_id: scenarioId, choice_ids: choiceIds,
+    });
+    setProfile(updated);
+    const scenario = scenarios.find(s => s.id === scenarioId);
+    return { xp: updated.xp_awarded, badge: !!scenario && updated.unlocked_badges.includes(scenario.badge_id) };
   };
 
   if (loading) {
@@ -270,6 +264,7 @@ export const LearnHub: React.FC = () => {
         </div>
       </div>
 
+      {refreshError && <p role="alert" className="text-sm text-amber-300">{refreshError}</p>}
       {/* Mode Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md">
         <button
@@ -363,12 +358,13 @@ export const LearnHub: React.FC = () => {
         </button>
       </div>
 
+      <PracticeModal isOpen={practiceOpen} onClose={() => setPracticeOpen(false)} onPracticeCompleted={() => { void handleXpEarned(); }} />
       {/* Active Tab Content Area */}
       <div>
         {activeTab === 'quest' && (
           <BridgeQuestMap
             nodes={skillTree}
-            onSelectNode={() => setActiveTab('scramble')}
+            onSelectNode={() => setPracticeOpen(true)}
             onLaunchScramble={() => setActiveTab('scramble')}
             onLaunchBlitz={() => setActiveTab('blitz')}
             onLaunchScenarios={() => setActiveTab('scenarios')}
@@ -378,7 +374,7 @@ export const LearnHub: React.FC = () => {
         {activeTab === 'scramble' && (
           <SentenceScrambleGame
             questions={scrambleQuestions}
-            onCompleteExercise={handleXpEarned}
+            onCompleteExercise={handleScrambleComplete}
             onHeartLost={handleHeartLost}
           />
         )}

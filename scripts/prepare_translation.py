@@ -67,8 +67,12 @@ def main():
 
     # Split into general set (85%) and held-out test evaluation set (15%)
     split_idx = int(0.85 * len(records))
-    train_dev_set = records[:split_idx]
     test_set = records[split_idx:]
+    import sys
+    sys.path.insert(0, str(BASE_DIR / "backend"))
+    from app.services.translation.corpus import exclude_heldout, sources
+    forbidden = ({sources(p)[0] for p in test_set}, {sources(p)[1] for p in test_set})
+    train_dev_set = exclude_heldout(records[:split_idx], forbidden)
 
     main_out = OUT_DIR / "hindi_marathi.jsonl"
     with open(main_out, "w", encoding="utf-8") as f:

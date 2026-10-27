@@ -34,6 +34,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
 }) => {
   const [questData, setQuestData] = useState<DailyQuestData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Pronunciation Studio State
   const [selectedPhrase, setSelectedPhrase] = useState(SAMPLE_PRACTICE_PHRASES[0]);
@@ -43,12 +44,16 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
   const [evalResult, setEvalResult] = useState<PronunciationEvaluateResult | null>(null);
   const [recController, setRecController] = useState<{ stop: () => void } | null>(null);
 
-  useEffect(() => {
+  const loadQuest = () => {
+    setLoading(true);
+    setError(null);
     api.getDailyQuest().then((d) => {
       setQuestData(d);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    }).catch(() => { setLoading(false); setError('Could not load daily quests. Please retry.'); });
+  };
+  useEffect(loadQuest, []);
+  useEffect(() => () => { recController?.stop(); }, [recController]);
 
   const handlePronounce = (text: string) => {
     sfx.playTileClick();
@@ -77,6 +82,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
       },
       onError: (err) => {
         console.error('Speech error:', err);
+        setError('Speech recognition is unavailable. Check microphone permission and try again.');
         setIsRecording(false);
       },
       onEnd: () => {
@@ -92,21 +98,24 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
       setEvaluating(true);
       const res = await api.evaluatePronunciation(spoken, selectedPhrase.devanagari);
       setEvalResult(res);
+      api.getDailyQuest().then(setQuestData).catch(() => {});
+      onXpEarned(0);
 
       if (res.is_native_pass) {
         sfx.playSuccessChime();
         triggerConfetti();
-        onXpEarned(40);
+
       } else {
         sfx.playErrorBuzz();
       }
     } catch (e) {
-      console.error(e);
+      setError('Could not evaluate your speech. Please retry.');
     } finally {
       setEvaluating(false);
     }
   };
 
+  if (!loading && !questData) return <div role="alert" className="p-6 text-rose-300">{error || 'No quest data available.'} <button onClick={loadQuest} className="underline">Retry</button></div>;
   if (loading || !questData) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-3 text-slate-400">
@@ -120,6 +129,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+      {error && <p role="alert" className="text-rose-300 text-sm">{error}</p>}
       {/* 1. Word & Idiom of the Day Spotlight */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Word of the Day Card */}
@@ -127,7 +137,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
           <div className="flex items-center justify-between">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Word of the Day</span>
+              <span>Word Spotlight</span>
             </div>
 
             <button
@@ -210,10 +220,10 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
               <span>Voice Pronunciation Studio</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-              Speak Marathi with Native Fluency
+              Practise Speaking Marathi
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              Listen to native audio, speak into the mic, and get immediate phonetic feedback.
+              Listen to the example, speak into the mic, and compare the recognized text with the target. This checks the transcript, not accent or intonation.
             </p>
           </div>
 
@@ -224,6 +234,8 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
                 key={idx}
                 onClick={() => {
                   sfx.playTileClick();
+                  recController?.stop();
+                  setIsRecording(false);
                   setSelectedPhrase(phrase);
                   setTranscript('');
                   setEvalResult(null);
@@ -270,7 +282,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
         <div className="text-center space-y-4">
           <div className="flex justify-center">
             <button
-              onClick={handleToggleRecord}
+              disabled={evaluating} onClick={handleToggleRecord}
               className={`relative w-20 h-20 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-300 ${
                 isRecording
                   ? 'bg-rose-600 ring-8 ring-rose-500/30 scale-110 animate-pulse'
@@ -328,7 +340,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
                 </div>
                 {evalResult.is_native_pass && (
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs">
-                    +40 XP Earned
+                    +{evalResult.xp_awarded} XP Saved
                   </span>
                 )}
               </div>
@@ -357,7 +369,7 @@ export const DailyQuestsAndPronunciation: React.FC<DailyQuestsAndPronunciationPr
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20">
             <Flame className="w-3.5 h-3.5 fill-current" />
-            <span>Daily Streak Active</span>
+            <span>Missions reset daily (UTC)</span>
           </div>
         </div>
 

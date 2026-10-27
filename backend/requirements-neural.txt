@@ -1,0 +1,6 @@
+-r requirements-core.txt
+torch>=2.6,<3
+transformers>=4.57,<4.58
+indic-nlp-library-itt==0.1.1
+sentencepiece>=0.2
+accelerate>=1,<2

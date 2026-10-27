@@ -95,16 +95,16 @@ def seed_database(db: Session):
             target_language="marathi",
             preferred_script="both",
             bridge_mode_level="intermediate",
-            speaking_score=0.75,
-            vocabulary_score=0.60,
-            grammar_score=0.50,
-            reading_score=0.40,
-            conversation_score=0.55,
-            devanagari_recognition=0.30,
-            devanagari_reading=0.20,
-            devanagari_writing=0.15,
-            roman_to_devanagari=0.35,
-            devanagari_to_roman=0.50
+            speaking_score=0.0,
+            vocabulary_score=0.0,
+            grammar_score=0.0,
+            reading_score=0.0,
+            conversation_score=0.0,
+            devanagari_recognition=0.0,
+            devanagari_reading=0.0,
+            devanagari_writing=0.0,
+            roman_to_devanagari=0.0,
+            devanagari_to_roman=0.0
         )
         db.add(profile)
         db.commit()
@@ -129,8 +129,8 @@ def seed_database(db: Session):
     if not progress_rec:
         progress_rec = Progress(
             user_id=1,
-            milestone_id=3,  # Level 2 by default
-            completed_exercises=7,
+            milestone_id=1,  # Start at the first milestone
+            completed_exercises=0,
             status="in_progress"
         )
         db.add(progress_rec)
@@ -139,18 +139,7 @@ def seed_database(db: Session):
     # 4b. Ensure User Gamification record exists
     gamification = db.query(UserGamification).filter(UserGamification.user_id == 1).first()
     if not gamification:
-        gamification = UserGamification(
-            user_id=1,
-            xp=320,
-            streak_days=5,
-            hearts=3,
-            max_hearts=3,
-            rank_title="चहा मित्र (Chaha Mitra)",
-            unlocked_badges_json=json.dumps(["first_step", "tapri_regular"], ensure_ascii=False),
-            blitz_high_score=140,
-            completed_scrambles=3,
-            completed_scenarios_json=json.dumps(["fc_road_auto"], ensure_ascii=False)
-        )
+        gamification = UserGamification(user_id=1)
         db.add(gamification)
         db.commit()
 
@@ -249,4 +238,9 @@ def seed_database(db: Session):
         except Exception as e:
             print(f"Warning: Failed to seed dataset: {e}")
             db.rollback()
+
+    # Only the curated, unambiguous examples enter exact translation memory.
+    from app.services.translation.memory import seed_reviewed_translations
+    seed_reviewed_translations(db)
+    db.commit()
 

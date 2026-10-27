@@ -24,30 +24,26 @@ class ProgressTrackerService(BaseProgressService):
     def get_user_progress(self, user_id: int = 1, db: Optional[Session] = None) -> ProgressResponse:
         # Default baseline values if DB session not provided or user empty
         target_lang = "Marathi"
-        overall_pct = 45
-        speaking = 75
-        vocab = 60
-        grammar = 50
-        reading = 40
-        conv = 55
-        rom_mr = 80
-        dev_rec = 30
-        dev_read = 25
-        dev_write = 20
-        rom_to_dev = 35
-        milestone_title = "Level 2 — College & Daily Life Sentences"
-        milestone_lvl = "Level 2"
-        milestone_id = 3
-        completed = 7
+        overall_pct = 0
+        speaking = 0
+        vocab = 0
+        grammar = 0
+        reading = 0
+        conv = 0
+        rom_mr = 0
+        dev_rec = 0
+        dev_read = 0
+        dev_write = 0
+        rom_to_dev = 0
+        milestone_title = "Level 0 — Survival Marathi & Greetings"
+        milestone_lvl = "Level 0"
+        milestone_id = 1
+        completed = 0
         total = 10
         status = "in_progress"
-        weak_areas = [
-            "Dative postpositions (-ला, -ना)",
-            "Past tense verb inflections",
-            "Temporal distinction ('कल' vs 'उद्या')"
-        ]
-        due_count = 12
-        bridge_level = "Intermediate (Roman + Devanagari)"
+        weak_areas = []
+        due_count = 0
+        bridge_level = "intermediate"
         script_rec_dto = None
 
         if db is not None:
@@ -65,7 +61,9 @@ class ProgressTrackerService(BaseProgressService):
                 dev_read = int(profile.devanagari_reading * 100)
                 dev_write = int(profile.devanagari_writing * 100)
                 rom_to_dev = int(profile.roman_to_devanagari * 100)
-                bridge_level = f"{profile.bridge_mode_level.capitalize()} (Bridge Mode)"
+                # Keep this as the persisted API value rather than presentation text.
+                # The frontend uses it as a BridgeLevel enum when restoring state.
+                bridge_level = profile.bridge_mode_level or "intermediate"
 
                 # Compute script recommendation
                 rec_data = script_progression_engine.evaluate_script_progression(profile)

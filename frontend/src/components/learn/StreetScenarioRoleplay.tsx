@@ -17,7 +17,7 @@ import {
 interface StreetScenarioRoleplayProps {
   scenarios: StreetScenarioItem[];
   unlockedBadges: string[];
-  onCompleteScenario: (scenarioId: string, badgeId: string, xpEarned: number) => void;
+  onCompleteScenario: (scenarioId: string, choiceIds: string[]) => Promise<{ xp: number; badge: boolean }>;
   onHeartLost: () => void;
 }
 
@@ -31,6 +31,10 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<StreetScenarioChoiceItem | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [choices, setChoices] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState({ xp: 0, badge: false });
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const activeScenario = scenarios.find((s) => s.id === selectedScenarioId);
   const activeStep: StreetScenarioStepItem | undefined =
@@ -39,6 +43,8 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
   const handleStartScenario = (id: string) => {
     sfx.playTileClick();
     setSelectedScenarioId(id);
+    setChoices([]);
+    setSaveError(null);
     setCurrentStepIdx(0);
     setSelectedChoice(null);
     setIsCompleted(false);
@@ -56,20 +62,27 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
     }
   };
 
-  const handleNextStep = () => {
-    if (!activeScenario || !activeStep || !selectedChoice) return;
+  const handleNextStep = async () => {
+    if (!activeScenario || !activeStep || !selectedChoice || saving) return;
+    const nextChoices = [...choices, selectedChoice.id];
 
     sfx.playTileClick();
     const nextIdx = currentStepIdx + 1;
     if (nextIdx < activeScenario.steps.length) {
+      setChoices(nextChoices);
       setCurrentStepIdx(nextIdx);
       setSelectedChoice(null);
     } else {
+      setSaving(true);
+      setSaveError(null);
+      try { setSaved(await onCompleteScenario(activeScenario.id, nextChoices)); }
+      catch { setSaveError('Could not save your scenario. Please retry.'); return; }
+      finally { setSaving(false); }
       // Completed entire scenario!
       setIsCompleted(true);
       sfx.playVictoryFanfare();
       triggerConfetti();
-      onCompleteScenario(activeScenario.id, activeScenario.badge_id, 100);
+
     }
   };
 
@@ -159,18 +172,18 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold uppercase tracking-wider">
             <Award className="w-3.5 h-3.5" />
-            <span>Badge Unlocked!</span>
+            <span>{saved.badge ? "Badge Earned" : "Scenario Complete"}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
             {activeScenario.badge_name}
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            You navigated the conversation like a seasoned Punekar without giving in to Hindi slips!
+            Your choices are saved. Review the feedback and try another conversation.
           </p>
         </div>
 
         <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-indigo-300">
-          Earned <span className="font-bold text-white">+100 XP</span> & collected this badge in your learning trophy case.
+          Saved <span className="font-bold text-white">+{saved.xp} XP</span>. A badge is earned when every choice uses the best phrasing. Replays do not award more XP.
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -188,6 +201,7 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
   // Active Dialogue Flow
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+      {saveError && <p role="alert" className="text-sm text-rose-300">{saveError}</p>}
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
@@ -319,7 +333,7 @@ export const StreetScenarioRoleplay: React.FC<StreetScenarioRoleplayProps> = ({
 
             <div className="pt-2 flex justify-end">
               <button
-                onClick={handleNextStep}
+                disabled={saving} onClick={handleNextStep}
                 className="px-6 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
               >
                 <span>Continue</span>

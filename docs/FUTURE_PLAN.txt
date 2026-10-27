@@ -1,0 +1,135 @@
+================================================================================
+                           BHASHABRIDGE FUTURE ROADMAP
+             AI-Powered Cross-Lingual Translation & Pedagogical Tutor
+================================================================================
+
+1. EXECUTIVE VISION
+--------------------------------------------------------------------------------
+BhashaBridge bridges closely related Indian languages (beginning with Hindi and
+Marathi, designed to expand to Gujarati, Bengali, and Punjabi). Rather than being
+a simple black-box translator (like Google Translate), BhashaBridge is designed
+as an interactive, pedagogically rich 'Linguistic Sensei' that explains WHY
+grammatical constructions differ and gamifies the learning process.
+
+The future evolution of BhashaBridge combines:
+  (a) Ultra-fast, zero-hallucination deterministic local models for translation
+      and structural alignment.
+  (b) An LLM API Intelligence Layer (e.g., Gemini 1.5 Flash / Claude 3.5 Sonnet)
+      acting as the conversational tutor, mnemonics creator, and dynamic game master.
+
+
+2. CORE ARCHITECTURAL DECISION: LLM API vs. LOCAL CUSTOM MODEL
+--------------------------------------------------------------------------------
+Key Decision: Call an LLM API rather than training a custom text generation model
+for linguistic explanations.
+
+Why Calling an LLM API is Far Superior:
+  1. Linguistic & Cultural Depth:
+     Explaining why Marathi uses 'हो का?' vs Hindi 'अच्छा?', or why 'पाणी' is
+     grammatically neuter requires deep cultural pragmatics and world knowledge.
+     Pre-trained frontier LLMs already possess this; small locally-trained models
+     hallucinate or produce rigid boilerplate.
+  2. Zero Manual Dataset Burden:
+     Training an explanation model from scratch requires tens of thousands of
+     expert-annotated (Sentence Pair -> Explanation) triplets. Calling an LLM
+     requires only high-quality system prompting and few-shot guidance.
+  3. Cost & Latency:
+     Gemini 1.5 Flash costs < .0005 per explanation with ~250-400ms latency.
+  4. Laptop Friendly:
+     Zero GPU VRAM needed on the user's laptop. The laptop runs only the lightweight
+     frontend and deterministic translation/alignment engine.
+
+The Hybrid Workflow:
+  Step 1: Local Engine (IndicTrans2 + Lexical/UD Aligner)
+          -> Generates translation, aligns tokens, identifies UD morphology & gender.
+  Step 2: LLM API (Gemini Flash)
+          -> Ingests the structured alignment and provides a witty, contextual
+             explanation, memory tricks, and conversational insights.
+  Step 3: Dynamic Gamification Engine
+          -> Generates real-time quizzes, NPC dialogues, and adaptive boss fights.
+
+
+3. ROADMAP PHASES & DETAILED MILESTONES
+--------------------------------------------------------------------------------
+
+PHASE 1: LLM LINGUISTIC TUTOR INTEGRATION (API LAYER)
+--------------------------------------------------------------------------------
+  * System Prompt Engineering:
+    Design a specialized 'BhashaBridge Sensei' prompt that takes:
+    - Source Sentence & Target Sentence
+    - Detected grammatical differences (e.g., Dative Experiencer, Neuter Gender)
+    - Target persona (e.g., 'Friendly Mumbai Senior', 'Puneri Grammarian')
+    And outputs:
+    - Conversational breakdown (why it shifted)
+    - Fun mnemonic to remember the rule
+    - 2 natural conversational alternatives (slang vs formal)
+  * Fallback Strategy:
+    If API call fails (offline or quota reached), automatically fall back to
+    the local rule-based HybridExplanationEngine and engine_legacy.py.
+
+PHASE 2: DYNAMIC GAMIFICATION & AI-NPC ROLEPLAY
+--------------------------------------------------------------------------------
+  * Interactive Scenario Roleplay (Living NPCs):
+    - Dadar Vegetable Market: Practice bargaining for vegetables in Marathi
+      ('टोमॅटो किती रुपयाला दिले?', 'कोथिंबीर फुकट द्या ना').
+    - Mumbai/Pune Auto Rickshaw: Negotiating destination and fare
+      ('स्टेशनला जायचं आहे, मीटरने चला').
+    - Pune Katta / Chai Tapri: Casual college banter.
+    The LLM plays the NPC in authentic colloquial Marathi, grades the user's
+    reply in real-time, highlights grammar slips gently, and awards XP.
+  * The '3-Gender Gauntlet' (Boss Battle Mode):
+    - Target the learner's most frequent trap: Marathi's 3rd grammatical gender
+      (नपुंसकलिंग / Neuter: पाणी, पुस्तक, घर).
+    - Rapid-fire time-attack drills testing adjective and verb agreement
+      ('माझं पुस्तक', 'थोडं पाणी', 'हवे आहे').
+  * Infinite Dynamic Quiz Generation:
+    - LLM dynamically constructs fill-in-the-blank and word-order puzzles
+      based on current real-world news, sports, or movie dialogues.
+
+PHASE 3: MULTIMODAL SPEECH & AUDIO
+--------------------------------------------------------------------------------
+  * Native Indic Text-to-Speech (TTS):
+    - Integrate AI4Bharat Indic-TTS or Microsoft Edge neural TTS for natural
+      sentence-level audio in standard Marathi and Hindi.
+    - Provide adjustable playback speed (0.75x for beginners, 1.0x normal).
+  * Voice Input (Speech-to-Text STT):
+    - Integrate Whisper-Indic / Web Speech API.
+    - Allow users to speak naturally in Romanized Marathi/Hindi or native script
+      and receive instantaneous translation + explanation.
+
+PHASE 4: EXPANDED LINGUISTIC COVERAGE & DEPENDENCY PARSING
+--------------------------------------------------------------------------------
+  * 1,000+ Contrastive Grammar Rules:
+    - Ergative case split (-ने suffix in past tense: उसने खाया vs त्याने खाल्ले).
+    - Aspectual compound verbs (जा बसणे vs जा बैठना, खाऊन घेणे vs खा लेना).
+    - Honorific clitics (-राव / -ताई vs -जी).
+    - Postposition fusion (-च्यावर, -बद्दल, -विषयी vs के ऊपर, के बारे में).
+  * Automated Dependency Parsing:
+    - Integrate Stanza / Trankit Indic models to parse complex multi-clause sentences
+      without manual dictionary definitions.
+
+PHASE 5: QUANTIZATION, EDGE PERFORMANCE & MOBILE PWA
+--------------------------------------------------------------------------------
+  * Quantized Local Translation:
+    - Convert IndicTrans2 to CTranslate2 INT8 / ONNX format for 4x faster CPU
+      inference and < 500MB memory footprint.
+  * Progressive Web App (PWA):
+    - Add offline service workers, touch gestures, and home screen installability
+      for seamless usage on iOS and Android.
+
+
+4. EVALUATION & BENCHMARKING SUITE
+--------------------------------------------------------------------------------
+  * Translation Quality: Automated BLEU and chrF++ benchmarks on FLORES-200.
+  * Pedagogical Accuracy: Expert human review of contrastive explanations.
+  * Latency Target: < 500ms end-to-end for translation + alignment + explanation.
+
+
+5. SUMMARY CHECKLIST FOR NEXT SPRINT
+--------------------------------------------------------------------------------
+  [ ] Implement Gemini 1.5 Flash API connector in backend/app/services/llm/
+  [ ] Build LLM explanation prompt with few-shot contrastive examples
+  [ ] Connect LLM explanation to Frontend drawer and card
+  [ ] Create 'Dadar Market' interactive NPC scenario prototype in Gamification tab
+  [ ] Add audio pronunciation playback for full sentences via Edge TTS
+================================================================================

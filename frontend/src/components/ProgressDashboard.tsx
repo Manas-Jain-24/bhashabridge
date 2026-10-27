@@ -31,17 +31,19 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   const [milestones, setMilestones] = useState<MilestoneRoadmapItem[]>([]);
   const [activeTab, setActiveTab] = useState<'proficiency' | 'roadmap'>('proficiency');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [updatingMode, setUpdatingMode] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
 
   const fetchData = () => {
     setLoading(true);
+    setLoadError(null);
     Promise.all([api.getProgress(), api.getMilestones()])
       .then(([progRes, mileRes]) => {
         setData(progRes);
         setMilestones(mileRes);
       })
-      .catch((err) => console.error(err))
+      .catch(() => setLoadError('Could not load your progress. Please retry.'))
       .finally(() => setLoading(false));
   };
 
@@ -49,12 +51,22 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
     if (isOpen) {
       fetchData();
       setUpdateSuccess(null);
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
+
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const handleApplyRecommendation = async (recMode: string) => {
     try {
       setUpdatingMode(true);
+      setUpdateError(null);
       await api.updateBridgeMode(recMode);
       setUpdateSuccess(`Successfully switched to ${recMode.toUpperCase()} mode!`);
       if (onBridgeLevelChange) {
@@ -63,6 +75,8 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
       fetchData();
     } catch (err) {
       console.error(err);
+      setUpdateError(`Failed to switch bridge mode to ${recMode}. Please check connection.`);
+      setTimeout(() => setUpdateError(null), 4000);
     } finally {
       setUpdatingMode(false);
     }
@@ -71,7 +85,12 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Learner Milestones and Proficiency Dashboard"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    >
       <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -122,7 +141,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
           </button>
         </div>
 
-        {loading || !data ? (
+        {loadError ? <div role="alert" className="text-rose-300 text-sm">{loadError} <button onClick={fetchData} className="underline">Retry</button></div> : loading || !data ? (
           <div className="py-16 flex flex-col items-center justify-center space-y-3">
             <RefreshCw className="w-6 h-6 text-indigo-400 animate-spin" />
             <span className="text-sm text-slate-400">Fetching skill breakdown and roadmap...</span>
@@ -172,6 +191,11 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
                   <div className="text-xs text-emerald-400 flex items-center gap-1.5 pt-1">
                     <Check className="w-3.5 h-3.5" />
                     <span>{updateSuccess}</span>
+                  </div>
+                )}
+                {updateError && (
+                  <div className="text-xs text-rose-400 flex items-center gap-1.5 pt-1">
+                    <span>{updateError}</span>
                   </div>
                 )}
               </div>

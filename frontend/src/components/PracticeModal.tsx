@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { PracticeQuestion, PracticeEvaluateResponse } from '../types';
 import { X, CheckCircle, XCircle, ArrowRight, RefreshCw, Sparkles, HelpCircle } from 'lucide-react';
@@ -15,6 +15,8 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
   onPracticeCompleted,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submitting = useRef(false);
   const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [evaluation, setEvaluation] = useState<PracticeEvaluateResponse | null>(null);
@@ -23,12 +25,20 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
   const loadNewQuestion = async () => {
     try {
       setLoading(true);
+      setError(null);
+      setQuestion(null);
       setEvaluation(null);
       setUserAnswer('');
-      const q = await api.generatePractice('marathi', 'level_1', 'general');
+      const progress = await api.getProgress();
+      const roadmap = await api.getMilestones();
+      const active = roadmap.find(m => m.is_active);
+      const level = active?.level_number ?? 0;
+      const topics = ['greetings', 'requests', 'college', 'conversation', 'grammar', 'script'];
+      const q = await api.generatePractice('marathi', `level_${level}`, topics[level] || 'general');
       setQuestion(q);
     } catch (err) {
       console.error(err);
+      setError('Could not load practice. Check the backend connection and retry.');
     } finally {
       setLoading(false);
     }
@@ -37,21 +47,32 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       loadNewQuestion();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [isOpen]);
 
-  const handleSubmit = async (answerToSubmit?: string) => {
+  const handleSubmit = async (answerToSubmit?: string, optionId?: string) => {
     const finalAnswer = answerToSubmit || userAnswer;
-    if (!finalAnswer.trim() || !question) return;
+    if (!finalAnswer.trim() || !question || submitting.current || evaluation) return;
+    submitting.current = true;
+    setError(null);
 
     try {
       setEvaluating(true);
-      const res = await api.evaluatePractice(question.id, finalAnswer, 'roman');
+      const res = await api.evaluatePractice(question.id, finalAnswer, 'roman', optionId);
       setEvaluation(res);
       if (onPracticeCompleted) onPracticeCompleted();
     } catch (err) {
       console.error(err);
+      setError('Your answer could not be saved. Please retry.');
     } finally {
+      submitting.current = false;
       setEvaluating(false);
     }
   };
@@ -59,7 +80,12 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Interactive Practice Modal"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    >
       <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl relative">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -75,12 +101,14 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
 
           <button
             onClick={onClose}
+            aria-label="Close modal"
             className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {error && <div role="alert" className="text-sm text-rose-300">{error} {!question && <button onClick={loadNewQuestion} className="underline ml-2">Retry</button>}</div>}
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center space-y-3">
             <RefreshCw className="w-6 h-6 text-indigo-400 animate-spin" />
@@ -124,7 +152,7 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
                       key={opt.id}
                       onClick={() => {
                         setUserAnswer(opt.text_roman);
-                        handleSubmit(opt.text_roman);
+                        handleSubmit(opt.text_roman, opt.id);
                       }}
                       disabled={evaluating || evaluation !== null}
                       className="w-full text-left p-3.5 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-indigo-950/30 hover:border-indigo-500/40 transition-all group"

@@ -90,6 +90,9 @@ class NeuralTransliterationService(BaseTransliterationService):
     def _transliterate_single_token(self, token: str, language: str = "marathi", direction: str = "latin_to_devanagari") -> str:
         """Transliterates a single token according to direction, preserving script rules."""
         if direction == "latin_to_devanagari":
+            from app.services.transliteration.phonetic_rule_service import phonetic_transliterator
+            known=phonetic_transliterator.COMMON_LATIN_TO_DEV.get(language,{}).get(token.lower())
+            if known is not None: return known
             if self._ensure_neural_model_loaded():
                 try:
                     res = self._neural_model.transliterate_word(token.lower(), language=language)

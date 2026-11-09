@@ -33,7 +33,7 @@ class AnalyzeRequest(BaseModel):
     target_language: Language = Field("marathi", description="Registered target language")
     preferred_script: Literal["both", "native", "devanagari", "roman", "latin"] = Field("both", description="devanagari, roman, or both")
 
-from app.schemas.translate import EnglishMeaningSource
+from app.schemas.translate import EnglishMeaningSource, MeaningAlternative
 
 class AnalyzeResponse(BaseModel):
     target_language: str = "marathi"
@@ -47,6 +47,8 @@ class AnalyzeResponse(BaseModel):
     translation_roman: str
     english_meaning: str
     english_meaning_source: EnglishMeaningSource = 'unavailable'
+    meaning_note: Optional[str] = None
+    meaning_alternatives: List[MeaningAlternative] = Field(default_factory=list)
     vocabulary: List[VocabularyItem] = []
     grammar_explanation: List[GrammarPoint] = []
     differences: List[str] = []

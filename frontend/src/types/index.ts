@@ -41,6 +41,8 @@ export interface AnalyzeResponse {
   translation_roman: string;
   english_meaning: string;
   english_meaning_source?: 'reviewed_database' | 'translation_engine' | 'ai_generated' | 'unavailable';
+  meaning_note?: string | null;
+  meaning_alternatives?: {label: string; source_text: string}[];
   vocabulary: VocabularyItem[];
   grammar_explanation: GrammarPoint[];
   differences: string[];

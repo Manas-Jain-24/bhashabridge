@@ -10,6 +10,7 @@ interface TranslationCardProps {
   onScriptModeChange: (mode: ScriptMode) => void;
   onOpenExplain: () => void;
   bridgeLevel: BridgeLevel;
+  onChooseMeaning?: (sourceText: string) => void;
 }
 
 export const TranslationCard: React.FC<TranslationCardProps> = ({
@@ -18,6 +19,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
   onScriptModeChange,
   onOpenExplain,
   bridgeLevel,
+  onChooseMeaning,
 }) => {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState<'native' | 'english' | null>(null);
@@ -87,7 +89,9 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           <span className="text-xs text-slate-400">
             {data.model_source === 'reviewed_database' || data.model_source === 'curated_corpus'
               ? 'Reviewed example'
-              : data.model_source === 'indictrans2-320m-neural'
+              : data.model_source === 'learning_construction'
+                ? 'Learning phrase'
+              : data.model_source?.startsWith('indictrans2-320m-neural')
                 ? 'AI translation'
                 : 'Rule translation'}
           </span>
@@ -137,6 +141,11 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           </div>
         )}
       </div>
+
+      {data.meaning_note && <div role="note" className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-4 space-y-3 text-sm text-amber-100">
+        <p>{data.meaning_note}</p>
+        {onChooseMeaning && <div className="flex flex-wrap gap-2">{data.meaning_alternatives?.map(option=><button key={option.source_text} onClick={()=>onChooseMeaning(option.source_text)} className="rounded-xl border border-amber-400/30 px-3 py-2 text-xs hover:bg-amber-500/10">{option.label}</button>)}</div>}
+      </div>}
 
       <div className="flex flex-wrap gap-3 text-xs text-slate-300">
         <button onClick={()=>handleSpeech('native')} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2"><Volume2 className="w-4 h-4" />{speaking==='native'?'Stop audio':`Listen in ${languages[data.target_language as Language]?.label}`}</button>

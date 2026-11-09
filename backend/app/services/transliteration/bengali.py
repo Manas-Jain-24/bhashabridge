@@ -9,6 +9,8 @@ from app.services.transliteration.phonetic_rule_service import phonetic_translit
 
 WORDS = {"ami": "আমি", "tumi": "তুমি", "apni": "আপনি", "amar": "আমার", "tomar": "তোমার", "bhalo": "ভালো", "bhalobashi": "ভালোবাসি", "achi": "আছি", "acho": "আছো", "achen": "আছেন", "kemon": "কেমন", "namaskar": "নমস্কার", "dhonnobad": "ধন্যবাদ", "bangla": "বাংলা", "shikhte": "শিখতে", "chai": "চাই", "jol": "জল", "pani": "পানি", "ki": "কি", "kothay": "কোথায়"}
 REVERSE = {native: roman for roman, native in WORDS.items()}
+WORDS.update({'amake':'আমাকে','hobe':'হবে'})
+REVERSE.update({'আমাকে':'amake','হবে':'hobe'})
 
 # These Devanagari sounds have no letter at the equivalent Bengali offset.
 SCRIPT_EXCEPTIONS = {"व": "ব", "ळ": "ল", "ऴ": "ল", "ऱ": "র", "ऩ": "ন", "ऍ": "এ", "ऎ": "এ", "ऑ": "অ", "ऒ": "ও"}

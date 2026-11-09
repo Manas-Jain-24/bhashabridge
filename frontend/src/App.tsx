@@ -87,7 +87,7 @@ export default function App() {
 
   const quickSamples = [
     { label: 'Bengali greeting', text: 'আপনি কেমন আছেন?', s: 'bengali', t: 'hindi' },
-    { label: 'Learn Bengali', text: 'मुझे बंगाली सीखनी है।', s: 'hindi', t: 'bengali' },
+    { label: 'Learn Bengali', text: 'मुझे बंगाली सीखने की इच्छा है।', s: 'hindi', t: 'bengali' },
     { label: 'Learn Marathi', text: 'Mujhe Marathi seekhni hai', s: 'hindi', t: 'marathi' },
     { label: 'College tomorrow (Hindi)', text: 'Mujhe kal college jaana hai', s: 'hindi', t: 'marathi' },
     { label: 'College tomorrow (Marathi)', text: 'Mala udya college-la jaycha aahe', s: 'marathi', t: 'hindi' },
@@ -379,6 +379,12 @@ export default function App() {
               onScriptModeChange={(mode) => setScriptMode(mode)}
               onOpenExplain={() => setIsExplainOpen(true)}
               bridgeLevel={bridgeLevel}
+              onChooseMeaning={(text)=>{
+                if(!analysisResult) return;
+                const from=analysisResult.detected_language as Language;
+                const to=analysisResult.target_language as Language;
+                invalidateAnalysis(); setInputText(text); void handleAnalyze(text,from,to);
+              }}
             />
 
             {/* Learn from this sentence Vocabulary Table */}

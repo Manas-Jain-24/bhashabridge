@@ -168,16 +168,16 @@ def test_transliteration_lazy_load_guard_on_missing_weights(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    # First request: triggers guarded load attempt and gracefully falls back
-    res1 = svc.transliterate("namaste", language="hindi")
-    assert res1 == "नमस्ते"
+    # Known lexical words bypass the model; an unfamiliar word exercises loading.
+    res1 = svc.transliterate("sundarta", language="hindi")
+    assert res1 and not any("a" <= char.lower() <= "z" for char in res1)
     assert svc._load_failed is True
     assert svc._load_attempts == svc._max_load_attempts
 
     # Second request: must NOT re-attempt loading; routes directly to rule fallback
     attempts_before = svc._load_attempts
-    res2 = svc.transliterate("dost", language="hindi")
-    assert res2 == "दोस्त"
+    res2 = svc.transliterate("sundarta", language="hindi")
+    assert res2 == res1
     assert svc._load_attempts == attempts_before
 
 

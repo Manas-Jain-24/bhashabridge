@@ -183,6 +183,11 @@ class HybridExplanationEngine(BaseExplanationService):
         """
         validate_language(source_language)
         validate_language(target_language)
+        if (source_language, target_language) == ('hindi', 'bengali'):
+            from app.services.translation.learning_phrases import explain_learning_phrase
+            learning = explain_learning_phrase(source_text, source_language, target_text, target_language)
+            if learning is not None:
+                return learning
         if not rule_pair(source_language, target_language):
             enrichment = llm_tutor.explain(source_text, source_language, target_text, target_language)
             return {

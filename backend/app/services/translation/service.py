@@ -27,6 +27,15 @@ def translate_with_memory(db, text: str, source_language: str, target_language: 
     reviewed = lookup_reviewed(db, text, source_language, target_language, script)
     if reviewed is not None:
         return reviewed
+    if (source_language,target_language)==('hindi','bengali'):
+        from app.services.translation.learning_phrases import translate_learning_phrase
+        from app.services.transliteration.service import transliteration_service
+        # Narrow, full-match constructions keep intention and obligation distinct.
+        native=transliteration_service.transliterate(text,language=source_language,direction='latin_to_native')
+        constructed=translate_learning_phrase(native,source_language,target_language,script)
+        if constructed is not None:
+            constructed['source_text'] = text
+            return constructed
     engine = translation_service if rule_pair(source_language, target_language) else indictrans2_adapter
     return engine.translate(text=text, source_language=source_language,
                                          target_language=target_language, script=script)

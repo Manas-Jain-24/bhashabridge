@@ -1,9 +1,13 @@
 from app.core.languages import InputText
 from app.core.languages import Language, AutoLanguage
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, model_validator
 
 EnglishMeaningSource = Literal['reviewed_database','translation_engine','ai_generated','unavailable']
+
+class MeaningAlternative(BaseModel):
+    label: str
+    source_text: str
 
 class TranslateRequest(BaseModel):
     text: InputText = Field(..., min_length=1, max_length=2000, description="Source text to translate")
@@ -29,3 +33,5 @@ class TranslateResponse(BaseModel):
     model_source: Optional[str] = None
     engine: Optional[str] = None
     fallback_used: Optional[bool] = False
+    meaning_note: Optional[str] = None
+    meaning_alternatives: List[MeaningAlternative] = Field(default_factory=list)

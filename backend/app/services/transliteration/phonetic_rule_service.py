@@ -70,7 +70,7 @@ class PhoneticTransliterationService(BaseTransliterationService):
             "kaisa": "कैसा", "kaisi": "कैसी", "kaise": "कैसे", "kaha": "कहाँ", "kahan": "कहाँ",
             "kab": "कब", "kya": "क्या", "kyon": "क्यों", "bohot": "बहुत", "bahut": "बहुत",
             "achha": "अच्छा", "achhi": "अच्छी", "achhe": "अच्छे",
-            "hindi": "हिंदी", "marathi": "मराठी", "namaste": "नमस्ते", "dhanyavaad": "धन्यवाद",
+            "hindi": "हिंदी", "marathi": "मराठी", "bengali": "बंगाली", "bangla": "बांग्ला", "namaste": "नमस्ते", "dhanyavaad": "धन्यवाद",
             "bolta": "बोलता", "bolti": "बोलती", "bolte": "बोलते", "bolna": "बोलना"
         }
     }

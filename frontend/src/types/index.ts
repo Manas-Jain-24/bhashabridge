@@ -40,6 +40,7 @@ export interface AnalyzeResponse {
   translation_native: string;
   translation_roman: string;
   english_meaning: string;
+  english_meaning_source?: 'reviewed_database' | 'translation_engine' | 'ai_generated' | 'unavailable';
   vocabulary: VocabularyItem[];
   grammar_explanation: GrammarPoint[];
   differences: string[];

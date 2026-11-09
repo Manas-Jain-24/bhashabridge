@@ -7,6 +7,7 @@ from app.services.language_detection.detector import language_detector
 from app.services.transliteration.service import transliteration_service
 from app.services.translation.service import translate_with_memory
 from app.services.explanation.engine import explanation_engine
+from app.services.translation.english import with_english_meaning
 
 router = APIRouter()
 
@@ -69,6 +70,7 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
         target_language=target_lang
     )
 
+    trans_result=with_english_meaning({**trans_result,'target_language':target_lang},explanation_result)
     return AnalyzeResponse(
         target_language=target_lang,
         detected_language=detected_language,
@@ -80,6 +82,7 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
         translation_native=trans_result["translation_native"],
         translation_roman=trans_result["translation_roman"],
         english_meaning=trans_result["english_meaning"],
+        english_meaning_source=trans_result['english_meaning_source'],
         vocabulary=explanation_result["word_explanations"],
         grammar_explanation=explanation_result["grammar_points"],
         differences=explanation_result["differences"],

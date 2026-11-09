@@ -1,5 +1,5 @@
 import { languages, type Language } from '../config/languages';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnalyzeResponse, ScriptMode, BridgeLevel } from '../types';
 import { HelpCircle, Copy, Check, Volume2, Sparkles, ArrowRight } from 'lucide-react';
 import { speech } from '../utils/speechEngine';
@@ -20,15 +20,17 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
   bridgeLevel,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [speaking, setSpeaking] = useState<'native' | 'english' | null>(null);
+  const [copiedEnglish,setCopiedEnglish]=useState(false);
+  const speechRequest=useRef(0);
 
   const [copyError, setCopyError] = useState(false);
   useEffect(() => {
     setCopied(false);
     setCopyError(false);
-    setSpeaking(false);
+    setSpeaking(null); setCopiedEnglish(false); ++speechRequest.current;
     speech.stop();
-    return () => speech.stop();
+    return () => { ++speechRequest.current; speech.stop(); };
   }, [data]);
 
   const handleCopy = async () => {
@@ -42,18 +44,25 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
     }
   };
 
-  const handleSpeech = () => {
-    if (speaking) {
+  const handleSpeech = (kind: 'native' | 'english' = 'native') => {
+    const request=++speechRequest.current;
+    if (speaking===kind) {
       speech.stop();
-      setSpeaking(false);
+      setSpeaking(null);
       return;
     }
-    setSpeaking(true);
-    const targetLang = data.target_language as Language;
-    const textToSpeak = data.translation_native;
+    setSpeaking(kind);
+    const targetLang = kind==='english'?'english':data.target_language;
+    const textToSpeak = kind==='english'?data.english_meaning:data.translation_native;
     speech.speak(textToSpeak, targetLang, 0.85, () => {
-      setSpeaking(false);
+      if(speechRequest.current===request) setSpeaking(null);
     });
+  };
+
+  const handleCopyEnglish=async()=>{
+    if(!data.english_meaning) return;
+    try { await navigator.clipboard.writeText(data.english_meaning); setCopiedEnglish(true); setCopyError(false); }
+    catch { setCopyError(true); }
   };
 
   // Determine what text to emphasize based on user script selection and Bridge Mode
@@ -67,7 +76,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
 
       {/* Header with language indicator & script switch */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             Target: {languages[data.target_language as Language]?.label || data.target_language}
@@ -129,31 +138,41 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         )}
       </div>
 
-      {/* Reviewed English gloss is available for curated examples. */}
+      <div className="flex flex-wrap gap-3 text-xs text-slate-300">
+        <button onClick={()=>handleSpeech('native')} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2"><Volume2 className="w-4 h-4" />{speaking==='native'?'Stop audio':`Listen in ${languages[data.target_language as Language]?.label}`}</button>
+        <button onClick={handleCopy} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2">{copied?<Check className="w-4 h-4" />:<Copy className="w-4 h-4" />}{copied?'Copied':'Copy translation'}</button>
+      </div>
+
+      {/* Keep reviewed glosses distinct from optional generated meanings. */}
       <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/60 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">
             English meaning
           </span>
+          {data.english_meaning && data.english_meaning_source==='ai_generated' && <span className="text-xs text-indigo-300 block mb-2">AI-generated meaning</span>}
           <p className="text-sm sm:text-base text-slate-200 font-medium">
-            {data.english_meaning ? `"${data.english_meaning}"` : 'Not available for this sentence yet.'}
+            {data.english_meaning ? `"${data.english_meaning}"` : 'English meaning is temporarily unavailable. Try again when the AI tutor is connected.'}
           </p>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
-            onClick={handleSpeech}
-            title="Listen pronunciation"
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all"
+            onClick={()=>handleSpeech('english')}
+            title="Listen to English meaning"
+            aria-label={speaking==='english'?'Stop English audio':'Listen to English meaning'}
+            disabled={!data.english_meaning}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all disabled:opacity-30"
           >
-            <Volume2 className={`w-4 h-4 ${speaking ? 'text-indigo-400 animate-pulse' : ''}`} />
+            <Volume2 className={`w-4 h-4 ${speaking==='english' ? 'text-indigo-400 animate-pulse' : ''}`} />
           </button>
           <button
-            onClick={handleCopy}
-            title="Copy translations"
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all"
+            onClick={handleCopyEnglish}
+            title="Copy English meaning"
+            aria-label="Copy English meaning"
+            disabled={!data.english_meaning}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all disabled:opacity-30"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            {copiedEnglish ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
           </button>
         </div>
       </div>

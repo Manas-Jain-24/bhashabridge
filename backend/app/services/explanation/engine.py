@@ -192,6 +192,8 @@ class HybridExplanationEngine(BaseExplanationService):
                 "common_mistakes": [], "examples": [],
                 "explanation_source": "hybrid_gemini" if enrichment else "unavailable",
                 "cultural_mnemonic": (enrichment or {}).get("cultural_mnemonic"),
+                "english_meaning": (enrichment or {}).get("english_meaning"),
+                "tutor_attempted": True,
             }
         try:
             return self._explain_enhanced(
@@ -337,7 +339,9 @@ class HybridExplanationEngine(BaseExplanationService):
             "common_mistakes": traps,
             "examples": [e.model_dump() for e in examples],
             "explanation_source": explanation_source,
-            "cultural_mnemonic": cultural_mnemonic
+            "cultural_mnemonic": cultural_mnemonic,
+            "english_meaning": (llm_enrichment or {}).get("english_meaning"),
+            "tutor_attempted": True,
         }
 
     def _build_dynamic_differences(

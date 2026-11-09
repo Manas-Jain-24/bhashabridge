@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.schemas.translate import TranslateRequest, TranslateResponse
 from app.services.translation.service import translate_with_memory
+from app.services.translation.english import with_english_meaning
 
 router = APIRouter()
 
@@ -14,4 +15,4 @@ def translate_text(request: TranslateRequest, db: Session = Depends(get_db)):
         target_language=request.target_language,
         script=request.script
     )
-    return TranslateResponse(**result)
+    return TranslateResponse(**with_english_meaning(result))

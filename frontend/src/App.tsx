@@ -320,7 +320,7 @@ export default function App() {
               Works with both <span className="text-indigo-300 font-mono">Roman letters</span> and <span className="text-white font-devanagari font-semibold">{languages[sourceLang].script_label}</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 id="practice-btn-main"
                 onClick={() => setIsPracticeOpen(true)}

@@ -56,10 +56,11 @@ Hashed corpus files and model vocabularies have explicit `.gitattributes` rules 
 
 ## Verification on 9 November 2026
 
-- Final complete backend suite: **165 passed**; one existing Starlette/httpx deprecation warning remains.
+- Final complete backend suite after English-meaning support: **179 passed**; one existing Starlette/httpx deprecation warning remains.
 - Frontend TypeScript check and production build passed.
 - Both corpus leakage audits passed. All seven expanded corpus hashes and both inference artifact hashes were verified against the staged Git bytes, including cross-platform newline handling.
 - Isolated browser checks displayed Bengali lessons and a server-created checkpoint, cleared a round when changing difficulty, and reported no JavaScript errors. A navigation overflow discovered during testing was fixed; document width equals viewport width at both 320px and 390px.
 - The managed launcher passed a temporary-database smoke test through the frontend API proxy. Both temporary ports were confirmed closed after shutdown.
 - The Bengali inference artifact loaded successfully. The separate validation and test word-model results are recorded in its model card; the sentence diagnostic has its own protocol and limitations.
 - All six sentence-translation directions completed the final 16-row diagnostic (96 outputs), with zero inference exceptions. The complete 1,012-row-per-direction benchmark remains unrun; these diagnostic results are not a representative quality estimate.
+- English meanings reuse the analysis tutor response, preserve reviewed glosses, and fail independently of the native translation. The live Bengali example returned “I have to go home.”; browser checks verified the generated label, separate English controls and no horizontal overflow at 320px/390px.

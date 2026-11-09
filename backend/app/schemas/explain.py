@@ -12,6 +12,7 @@ class ExplainRequest(BaseModel):
 
 class ExplainResponse(BaseModel):
     summary: str
+    english_meaning: Optional[str] = None
     word_explanations: List[VocabularyItem] = []
     grammar_points: List[GrammarPoint] = []
     differences: List[str] = []

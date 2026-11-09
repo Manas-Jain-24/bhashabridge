@@ -3,6 +3,8 @@ from app.core.languages import Language, AutoLanguage
 from typing import Optional, Literal
 from pydantic import BaseModel, Field, model_validator
 
+EnglishMeaningSource = Literal['reviewed_database','translation_engine','ai_generated','unavailable']
+
 class TranslateRequest(BaseModel):
     text: InputText = Field(..., min_length=1, max_length=2000, description="Source text to translate")
     source_language: Language = Field("hindi", description="Registered source language")
@@ -23,6 +25,7 @@ class TranslateResponse(BaseModel):
     translation_native: str
     translation_roman: str
     english_meaning: str
+    english_meaning_source: EnglishMeaningSource = 'unavailable'
     model_source: Optional[str] = None
     engine: Optional[str] = None
     fallback_used: Optional[bool] = False

@@ -36,7 +36,7 @@ export class SpeechEngine {
     rate: number = 0.85,
     onEnd?: () => void
   ) {
-    if (!this.synth) return;
+    if (!this.synth) { onEnd?.(); return; }
 
     this.synth.cancel(); // Stop any overlapping speech
 
@@ -44,7 +44,7 @@ export class SpeechEngine {
     utterance.rate = rate; // 0.85x speed allows clear distinction of Marathi retroflex consonants
     utterance.pitch = 1.0;
 
-    const targetLangCode = languages[language as Language]?.speech || 'hi-IN';
+    const targetLangCode = language==='english'?'en-IN':languages[language as Language]?.speech || 'hi-IN';
     utterance.lang = targetLangCode;
 
     // Look for matching Marathi or Hindi native voice

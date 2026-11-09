@@ -18,6 +18,10 @@ For setup, the managed demo launcher, the walkthrough, content review status, ev
 
 ## Bengali and future language support
 
+Translation cards now include English meanings when available. Reviewed database meanings take precedence; other sentences can receive a labelled AI-generated English gloss through the configured Gemini tutor. Analysis reuses its existing tutor response instead of making a second request. `/api/translate` requests a gloss only when its result has none. If the tutor is unavailable or returns an invalid gloss, the native translation remains usable and the English controls are disabled. Generated glosses are not written into reviewed memory. Native and English audio/copy controls are separate.
+
+![Bengali translation with an English meaning](docs/images/english-meaning.png)
+
 Bengali is available for neural translation with Hindi and Marathi, including native input, script display, speech locale routing and experimental Roman spelling support. The learning hub contains the original Marathi course, multilingual games and the Bengali starter course. The Bengali word model has a held-out benchmark; the full course still needs native-speaker review and sentence translation quality is a separate evaluation.
 
 Language metadata is shared between the API and UI in `shared/languages.json`. See [adding languages](docs/ADDING_LANGUAGES.md) for architecture, capabilities, setup, tests, and limitations. Native-script API requests can use `script="native"`; legacy `devanagari` mode and transliteration direction names remain compatible.

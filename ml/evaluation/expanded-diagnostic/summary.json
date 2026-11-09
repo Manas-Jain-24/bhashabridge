@@ -1,0 +1,78 @@
+{
+  "complete": true,
+  "diagnostic_subset": true,
+  "examples_per_direction": 16,
+  "full_split_examples_per_direction": 1012,
+  "postprocessor": "terminal-quotes-v1",
+  "configuration": {
+    "generation": {
+      "early_stopping": true,
+      "max_length": 256,
+      "no_repeat_ngram_size": 4,
+      "num_beams": 5,
+      "use_cache": false
+    },
+    "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+    "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+    "precision": "float32",
+    "processor": "IndicScriptProcessor",
+    "test_sha256": "b4dedb2c3c8b4f37bcc0bb6ae41f0769fa704cf8e586f33df26ebc194c9c1dee"
+  },
+  "sampling": "First 16 rows; no general translation-accuracy claim.",
+  "directions": [
+    {
+      "source": "bengali",
+      "target": "hindi",
+      "examples": 16,
+      "bleu": 22.750586980961796,
+      "chrf_plus_plus": 47.43328717498313,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    },
+    {
+      "source": "bengali",
+      "target": "marathi",
+      "examples": 16,
+      "bleu": 8.125807438892208,
+      "chrf_plus_plus": 41.36221301535845,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    },
+    {
+      "source": "hindi",
+      "target": "bengali",
+      "examples": 16,
+      "bleu": 13.31711858824367,
+      "chrf_plus_plus": 43.860838060328646,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    },
+    {
+      "source": "hindi",
+      "target": "marathi",
+      "examples": 16,
+      "bleu": 9.275794219918602,
+      "chrf_plus_plus": 43.40420680534624,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    },
+    {
+      "source": "marathi",
+      "target": "bengali",
+      "examples": 16,
+      "bleu": 12.590010965428444,
+      "chrf_plus_plus": 44.10830232990221,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    },
+    {
+      "source": "marathi",
+      "target": "hindi",
+      "examples": 16,
+      "bleu": 25.089416359013434,
+      "chrf_plus_plus": 52.10820640257931,
+      "punctuation_repairs": 0,
+      "inference_failures": 0
+    }
+  ]
+}

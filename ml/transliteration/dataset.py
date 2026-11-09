@@ -75,7 +75,8 @@ class TransliterationDataset(Dataset):
         src_vocab: Optional[CharVocab] = None,
         tgt_vocab: Optional[CharVocab] = None,
         direction: str = "latin_to_devanagari",
-        build_vocab: bool = False
+        build_vocab: bool = False,
+        language: Optional[str] = None
     ):
         self.pairs: List[Tuple[str, str, str]] = []
         self.direction = direction
@@ -86,8 +87,11 @@ class TransliterationDataset(Dataset):
                     continue
                 record = json.loads(line)
                 roman = record.get("roman", "").strip().lower()
-                devanagari = record.get("devanagari", "").strip()
+                devanagari = record.get("native", record.get("devanagari", "")).strip()
                 lang = record.get("language", "mr")
+                language_name = {"hi":"hindi", "mr":"marathi", "bn":"bengali"}.get(lang, lang)
+                if language and language_name != language:
+                    continue
                 if roman and devanagari:
                     if direction == "latin_to_devanagari":
                         self.pairs.append((roman, devanagari, lang))

@@ -1,96 +1,31 @@
-# BhashaBridge — Dataset Repository & Documentation
+# BhashaBridge data
 
-This directory contains the lightweight, reproducible datasets for the BhashaBridge Hindi ↔ Marathi language learning application.
+The current multilingual expansion lives in `processed/expanded/`. It is separate from the older course and benchmark files so those references remain reproducible. `dataset_stats.json` contains both legacy and expanded counts; `processed/expanded/manifest.json` records processed and raw SHA-256 hashes and exact source URLs.
 
----
+| Expanded collection | Contents |
+| --- | --- |
+| Transliteration training | Deduplicated legacy training pairs plus official Dakshina training annotations for Hindi, Marathi and Bengali; native words and Roman sources appearing in held-out splits are removed. |
+| Transliteration validation/test | Official Dakshina dev/test word groups; all attested Roman aliases retained. |
+| Spelling lexicon | Training-only native words with attested Roman variants and annotation counts. These are not English dictionary definitions. |
+| Translation teaching | 997 aligned FLORES-200 dev rows, each containing English, Hindi, Marathi and Bengali. |
+| Translation training | Six directed Indic-language pairs per teaching row (5,982 records representing 997 aligned source rows, not 5,982 independent examples). |
+| Translation benchmark | 1,012 aligned FLORES-200 devtest rows. These are excluded from games, lexicon retrieval and translation teaching. |
 
-## 📁 Directory Structure
+Sources and attribution:
 
-```text
-data/
-├── raw/
-│   ├── dakshina/
-│   │   ├── hi_lexicon_sample.tsv
-│   │   └── mr_lexicon_sample.tsv
-│   ├── bpcc/
-│   │   └── hindi_marathi_parallel_sample.jsonl
-│   └── provenance.json
-│
-├── processed/
-│   ├── transliteration/
-│   │   ├── train.jsonl            # 65 items (70%)
-│   │   ├── validation.jsonl       # 14 items (15%)
-│   │   └── test.jsonl             # 14 items (15%)
-│   │
-│   ├── translation/
-│   │   ├── hindi_marathi.jsonl    # 317 pairs (train/dev)
-│   │   └── test.jsonl             # 56 pairs (held-out evaluation)
-│   │
-│   └── learning/
-│       └── bhashabridge_learning.json  # 360 curated educational items
-│
-├── dataset_stats.json             # Automated statistical analysis report
-└── README.md
+- **Google Research Dakshina v1.0**, Roark et al., *Processing South Asian Languages Written in the Latin Script: the Dakshina Dataset* (LREC 2020). [Official source](https://github.com/google-research-datasets/dakshina), [paper](https://aclanthology.org/2020.lrec-1.294/). The **data license is CC BY-SA 4.0**, not Apache 2.0. This project selects Hindi, Marathi and Bengali lexicons, normalizes and filters records, merges training data, and preserves official dev/test separation.
+- **Meta/Facebook FLORES-200**. [Official source and citation information](https://github.com/facebookresearch/flores/tree/main/flores200). Data is **CC BY-SA 4.0**. This project selects four languages by aligned line number and derives teaching/game items and directed Indic-language pairs. FLORES dev is now used as teaching/training material here; never report it as an unseen benchmark.
+- New source-derived records and data adaptations retain the [CC BY-SA 4.0 terms](https://creativecommons.org/licenses/by-sa/4.0/) and source attribution. Legacy records in the merged training file retain their original source metadata where present; unknown legacy provenance is labelled `legacy_project_corpus`, rather than falsely attributed to a new source.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/expand_datasets.py
+.\.venv\Scripts\python.exe scripts/expand_datasets.py --offline
+.\.venv\Scripts\python.exe scripts/check_expanded_data.py
+.\.venv\Scripts\python.exe scripts/dataset_stats.py
 ```
 
----
+The downloader uses bounded byte ranges to read the nine required lexicon files from Google's uncompressed 2 GB tar archive, and downloads the approximately 26 MB FLORES archive. It reads selected members without extracting arbitrary archive paths. Raw files stay under ignored `data/raw/expanded/`.
 
-## 📜 Dataset Provenance & Licenses
+The older `processed/learning` set has 360 project-authored examples, and the older translation set has 1,242 training and 219 diagnostic test pairs with known alignment concerns. Importing additional data does not establish an accuracy score. A subsequent Bengali character-model training/evaluation run is documented separately in its [model card](../ml/models/bengali-v1/MODEL_CARD.md). The previously contaminated high-BLEU report remains invalid for unseen quality.
 
-| Dataset Name | Source / URL | Version | License | Extraction & Use |
-|---|---|---|---|---|
-| **Google Dakshina** | [google-research-datasets/dakshina](https://github.com/google-research-datasets/dakshina) | v1.0 | Apache 2.0 | Lightweight lexical sample for Roman ↔ Devanagari transliteration evaluation. |
-| **AI4Bharat Aksharantar** | [ai4bharat/Aksharantar](https://huggingface.co/datasets/ai4bharat/Aksharantar) | v1.0 | CC-BY-4.0 | Skipped full 50GB multi-lingual corpus to preserve 8-day timeline; augmented with colloquial Roman variations (`aahe`/`ahe`/`ahey`). |
-| **AI4Bharat BPCC** | [ai4bharat/BPCC](https://huggingface.co/datasets/ai4bharat/BPCC) | v1.0 | CC-BY-4.0 | Parallel Hindi–Marathi conversational sentence pairs. Full multi-gigabyte corpus skipped. |
-| **BhashaBridge Custom Learning Corpus** | Internal / Hand-reviewed | v1.0 | CC-BY-SA 4.0 | 360 verified sentence pairs with vocabulary alignment, grammar notes, contextual nuances, and common learner traps. |
-
----
-
-## 🛠️ Reproduction Scripts
-
-All datasets can be rebuilt and verified in seconds using the scripts in `scripts/`:
-
-```bash
-# 1. Stage raw samples and provenance metadata
-python scripts/download_datasets.py
-
-# 2. Build the 360-example custom educational corpus across 17 topics
-python scripts/build_learning_dataset.py
-
-# 3. Clean and partition transliteration splits (train/val/test)
-python scripts/prepare_transliteration.py
-
-# 4. Clean and partition parallel translation corpora
-python scripts/prepare_translation.py
-
-# 5. Generate and update dataset statistics
-python scripts/dataset_stats.py
-```
-
----
-
-## 📊 Summary Statistics (from `dataset_stats.json`)
-
-### Transliteration Corpus
-- **Total records**: 93
-- **Languages**: Marathi (50), Hindi (43)
-- **Splits**: Train (65), Validation (14), Test (14)
-- **Devanagari Char Vocab Size**: 46
-- **Roman Char Vocab Size**: 22
-- **Average Roman Input Length**: 5.1 characters
-- **Average Devanagari Output Length**: 4.2 characters
-- **Duplicates / Missing**: 0
-
-### Translation Corpus
-- **Total parallel sentence pairs**: 373
-- **Splits**: Train/Dev (317), Held-out Test (56)
-- **Average Hindi Sentence Length**: 6.37 words
-- **Average Marathi Sentence Length**: 4.85 words
-- **Duplicates / Missing**: 0
-
-### Custom Educational Learning Corpus
-- **Total items**: 360
-- **Topics covered**: 17 (Greetings, Introductions, College, Classroom, Friends, Family, Food, Shopping, Travel, Directions, Daily routine, Requests, Questions, Feelings, Common informal conversation, Politeness/formality, Common differences)
-- **Difficulty breakdown**: Beginner (180), Intermediate (180)
-- **Formality breakdown**: Formal (17), Neutral (329), Informal (14)
-- **Field completeness**: 100% verified (no missing fields or unverified placeholders)
+`lessons/starter_vocabulary.json` contains 36 authored starter words for each of the three languages. `lessons/bengali_starter.json` contains six units with 24 phrases. Four greeting phrases are source-checked against the cited Bhasha Sangam booklet; the rest are editorial drafts awaiting native-speaker review. These files are teaching material, not held-out benchmark data, dictionary definitions or automatically approved translation-memory records. The corpus overlap audit covers the expanded corpus files; authored starter lessons are separately labelled and are not used to train or evaluate the Bengali model.

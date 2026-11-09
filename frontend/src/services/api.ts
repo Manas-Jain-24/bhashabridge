@@ -28,7 +28,7 @@ export const api = {
         preferred_script: preferredScript,
       }),
     });
-    if (!res.ok) throw new Error('Analysis failed');
+    if (!res.ok) { const error = await res.json().catch(() => ({})); throw new Error(typeof error.detail === 'string' ? error.detail : 'Analysis failed. Please check the language and retry.'); }
     return res.json();
   },
 

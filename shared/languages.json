@@ -1,0 +1,50 @@
+{
+  "hindi": {
+    "label": "Hindi",
+    "native_name": "हिन्दी",
+    "script": "devanagari",
+    "script_label": "Devanagari",
+    "unicode_start": 2304,
+    "unicode_end": 2431,
+    "iso": "hi",
+    "flores": "hin_Deva",
+    "speech": "hi-IN",
+    "romanization": "phonetic",
+    "lessons": true,
+    "sample_roman": "Mujhe Hindi seekhni hai",
+    "sample_native": "मुझे हिन्दी सीखनी है।",
+    "transliteration_backend": "devanagari"
+  },
+  "marathi": {
+    "label": "Marathi",
+    "native_name": "मराठी",
+    "script": "devanagari",
+    "script_label": "Devanagari",
+    "unicode_start": 2304,
+    "unicode_end": 2431,
+    "iso": "mr",
+    "flores": "mar_Deva",
+    "speech": "mr-IN",
+    "romanization": "phonetic",
+    "lessons": true,
+    "sample_roman": "Mala Marathi shikaychi aahe",
+    "sample_native": "मला मराठी शिकायची आहे।",
+    "transliteration_backend": "devanagari"
+  },
+  "bengali": {
+    "label": "Bengali",
+    "native_name": "বাংলা",
+    "script": "bengali",
+    "script_label": "Bengali",
+    "unicode_start": 2432,
+    "unicode_end": 2559,
+    "iso": "bn",
+    "flores": "ben_Beng",
+    "speech": "bn-IN",
+    "romanization": "experimental",
+    "lessons": false,
+    "sample_roman": "ami bangla shikhte chai",
+    "sample_native": "আমি বাংলা শিখতে চাই।",
+    "transliteration_backend": "bengali_phonetic"
+  }
+}

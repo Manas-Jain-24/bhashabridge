@@ -71,5 +71,41 @@
     "verified_curated_examples": 360,
     "missing_critical_fields": 0,
     "duplicate_count": 0
+  },
+  "expanded_corpora": {
+    "lexicon_words": {
+      "bengali": 23899,
+      "hindi": 23931,
+      "marathi": 24383
+    },
+    "transliteration_train_pairs": 328023,
+    "transliteration_train_by_language": {
+      "marathi": 118530,
+      "hindi": 119200,
+      "bengali": 90293
+    },
+    "transliteration_validation_words": 7497,
+    "transliteration_test_words": 7500,
+    "translation_teaching_multiway_rows": 997,
+    "translation_test_multiway_rows": 1012,
+    "translation_train_directional_pairs": 5982
+  },
+  "starter_vocabulary": {
+    "words_by_language": {
+      "hindi": 36,
+      "marathi": 36,
+      "bengali": 36
+    },
+    "review_status": "editorial_draft"
+  },
+  "starter_courses": {
+    "bengali": {
+      "units": 6,
+      "phrases": 24,
+      "phrases_by_review_status": {
+        "source_checked": 4,
+        "editorial_draft": 20
+      }
+    }
   }
 }

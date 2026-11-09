@@ -1,8 +1,26 @@
 # BhashaBridge 🌉
-> **NLP-Powered Hindi–Marathi Language-Learning Application with Roman–Devanagari Bridge**
+> **Indian language learning with script bridges, multilingual games, and an evaluated Bengali word model**
 
-BhashaBridge enables learners who can speak or understand Hindi or Marathi to master the other language **without being forced to first overcome Devanagari script barriers**. Learners can type naturally in Roman/Latin letters, see real-time phonetic Devanagari previews, study sentence-level contrasts, and independently advance their spoken fluency and script literacy.
+BhashaBridge helps Hindi, Marathi and Bengali learners move between Roman spellings and native scripts through translation, script practice and lesson checkpoints. Support varies by language: the original curated course focuses on Hindi–Marathi, while Bengali translation and Roman spelling support remain experimental. Measured results and review labels make those limits explicit.
 
+
+## Multilingual games and expanded data
+
+The Learn & Play Hub now includes a **Multilingual Arcade** for Bengali, Hindi and Marathi: word matching, Roman spelling tiles, sentence matching, and a server-timed 60-second sprint. It saves language-specific XP, levels, badges and best scores. The original Marathi course remains a separate option.
+
+The expanded data includes 328,023 transliteration training pairs, 72,213 training-only native-word spelling entries, and FLORES-200 teaching/test sets across Hindi, Marathi, Bengali and English. See [data sources and licenses](data/README.md), [the manifest](data/processed/expanded/manifest.json), and [arcade implementation notes](docs/MULTILINGUAL_ARCADE.md).
+
+Beginner games now use everyday vocabulary with topic filters. Mistakes enter a saved review queue; correct answers schedule later reviews. Bengali Foundations adds six starter units and 24 phrases, with source-checked greetings and clearly labelled drafts awaiting native-speaker review. Lesson checkpoints save completion and award replay-safe bonus XP.
+
+A new Bengali character model completed three training epochs on 90,293 pairs. On a separate 2,500-word test split, exact match rose from **9.84% to 36.92%**, and Unicode-codepoint CER fell from **36.37% to 17.82%** against the previous dictionary/phonetic fallback. It remains experimental and follows lexical lookup. See the [model card](ml/models/bengali-v1/MODEL_CARD.md) for the full protocol, limitations and reproducible commands.
+
+For setup, the managed demo launcher, the walkthrough, content review status, evaluation and CI, see the [engineering project guide](docs/ENGINEERING_PROJECT.md).
+
+## Bengali and future language support
+
+Bengali is available for neural translation with Hindi and Marathi, including native input, script display, speech locale routing and experimental Roman spelling support. The learning hub contains the original Marathi course, multilingual games and the Bengali starter course. The Bengali word model has a held-out benchmark; the full course still needs native-speaker review and sentence translation quality is a separate evaluation.
+
+Language metadata is shared between the API and UI in `shared/languages.json`. See [adding languages](docs/ADDING_LANGUAGES.md) for architecture, capabilities, setup, tests, and limitations. Native-script API requests can use `script="native"`; legacy `devanagari` mode and transliteration direction names remain compatible.
 
 ## Current working baseline (24 October 2026)
 

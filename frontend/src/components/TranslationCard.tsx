@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { languages, type Language } from '../config/languages';
+import React, { useState, useEffect } from 'react';
 import { AnalyzeResponse, ScriptMode, BridgeLevel } from '../types';
 import { HelpCircle, Copy, Check, Volume2, Sparkles, ArrowRight } from 'lucide-react';
 import { speech } from '../utils/speechEngine';
@@ -21,10 +22,24 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(`${data.translation_native}\n${data.translation_roman}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const [copyError, setCopyError] = useState(false);
+  useEffect(() => {
+    setCopied(false);
+    setCopyError(false);
+    setSpeaking(false);
+    speech.stop();
+    return () => speech.stop();
+  }, [data]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${data.translation_native}\n${data.translation_roman}`);
+      setCopied(true);
+      setCopyError(false);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError(true);
+    }
   };
 
   const handleSpeech = () => {
@@ -34,7 +49,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
       return;
     }
     setSpeaking(true);
-    const targetLang = data.detected_language === 'hindi' ? 'marathi' : 'hindi';
+    const targetLang = data.target_language as Language;
     const textToSpeak = data.translation_native;
     speech.speak(textToSpeak, targetLang, 0.85, () => {
       setSpeaking(false);
@@ -55,7 +70,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         <div className="flex items-center gap-3">
           <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            Target: {data.detected_language === 'hindi' ? 'Marathi' : 'Hindi'}
+            Target: {languages[data.target_language as Language]?.label || data.target_language}
           </span>
           <span className="text-xs text-slate-400">
             Detected: <strong className="text-slate-300 capitalize">{data.detected_language}</strong> ({data.detected_script})
@@ -73,7 +88,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         <div className="inline-flex rounded-xl bg-slate-900/90 p-1 border border-slate-800">
           {(['both', 'devanagari', 'roman'] as ScriptMode[]).map((mode) => (
             <button
-              key={mode}
+              key={mode === 'devanagari' ? 'Native' : mode}
               onClick={() => onScriptModeChange(mode)}
               className={`px-3 py-1 text-xs font-medium rounded-lg transition-all capitalize ${
                 scriptMode === mode
@@ -81,7 +96,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
-              {mode}
+              {mode === 'devanagari' ? 'Native' : mode}
             </button>
           ))}
         </div>
@@ -93,7 +108,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         {showDevanagari && (
           <div className="group relative">
             <label className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-1 block">
-              {data.detected_language === 'hindi' ? 'Marathi (Devanagari)' : 'Hindi (Devanagari)'}
+              {languages[data.target_language as Language]?.label} ({languages[data.target_language as Language]?.script_label})
             </label>
             <div className="font-devanagari text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide text-white leading-relaxed">
               {data.translation_native}
@@ -105,7 +120,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           <div className="pt-2">
             <label className="text-[11px] font-semibold tracking-wider uppercase text-indigo-400 mb-1 block flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-indigo-400" />
-              {data.detected_language === 'hindi' ? 'Roman Marathi (Latin Script)' : 'Roman Hindi (Latin Script)'}
+              Roman {languages[data.target_language as Language]?.label} (Latin Script)
             </label>
             <div className="text-xl sm:text-2xl font-semibold tracking-wide text-indigo-200">
               {data.translation_roman}
@@ -142,6 +157,8 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           </button>
         </div>
       </div>
+
+      {copyError && <p role="status" className="text-xs text-amber-200">Copy was blocked by the browser. Select the translation text to copy it.</p>}
 
       {/* Quick Contrast Highlights Banner */}
       {data.differences && data.differences.length > 0 && (

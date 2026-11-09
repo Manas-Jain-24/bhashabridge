@@ -1,3 +1,4 @@
+from app.core.languages import has_native
 """Exact, reviewed sentence memory. Model guesses never enter this table."""
 import json
 from collections import defaultdict
@@ -52,11 +53,9 @@ def seed_reviewed_translations(db: Session) -> int:
 def lookup_reviewed(db: Session, text: str, source_language: str, target_language: str, script: str = "both"):
     if source_language == target_language:
         return None
-    source_native = text.strip()
-    if not any("\u0900" <= char <= "\u097f" for char in source_native):
-        source_native = transliteration_service.transliterate(
-            source_native, language=source_language, direction="latin_to_devanagari"
-        )
+    source_native = transliteration_service.transliterate(
+        text.strip(), language=source_language, direction="latin_to_native"
+    )
     key = normalize_source(source_native)
     row = db.query(ReviewedTranslation).filter_by(
         source_language=source_language, target_language=target_language, source_key=key
@@ -70,7 +69,7 @@ def lookup_reviewed(db: Session, text: str, source_language: str, target_languag
         "source_text": text,
         "source_language": source_language,
         "target_language": target_language,
-        "translation": row.target_text if script == "devanagari" else roman,
+        "translation": row.target_text if script in ("native", "devanagari") else roman,
         "translation_native": row.target_text,
         "translation_roman": roman,
         "english_meaning": row.english_meaning or "",

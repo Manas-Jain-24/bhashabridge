@@ -1,3 +1,5 @@
+from app.core.languages import InputText
+from app.core.languages import Language, AutoLanguage
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 
@@ -26,12 +28,13 @@ class ExampleItem(BaseModel):
     english_translation: str
 
 class AnalyzeRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=2000, description="Sentence or phrase to analyze")
-    source_language: Literal["hindi", "marathi", "auto"] = Field("auto", description="auto, hindi, or marathi")
-    target_language: Literal["marathi", "hindi"] = Field("marathi", description="marathi or hindi")
-    preferred_script: Literal["both", "devanagari", "roman", "latin"] = Field("both", description="devanagari, roman, or both")
+    text: InputText = Field(..., min_length=1, max_length=2000, description="Sentence or phrase to analyze")
+    source_language: AutoLanguage = Field("auto", description="auto or a registered source language")
+    target_language: Language = Field("marathi", description="Registered target language")
+    preferred_script: Literal["both", "native", "devanagari", "roman", "latin"] = Field("both", description="devanagari, roman, or both")
 
 class AnalyzeResponse(BaseModel):
+    target_language: str = "marathi"
     detected_language: str
     detected_script: str
     normalized_text: str

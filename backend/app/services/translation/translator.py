@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.core.languages import rule_pair
 import json
 import re
 from collections import defaultdict
@@ -297,6 +299,8 @@ class ModularTranslationService(BaseTranslationService):
         target_language: str = "marathi",
         script: str = "both"
     ) -> Dict[str, Any]:
+        if not rule_pair(source_language, target_language):
+            raise HTTPException(503, "No rule translator is available for this pair.")
         norm_input = self._normalize_cmp(text)
 
         # 1. Check DEFAULT_PAIRS and loaded dataset pairs
@@ -310,7 +314,7 @@ class ModularTranslationService(BaseTranslationService):
                         "source_text": text,
                         "source_language": source_language,
                         "target_language": target_language,
-                        "translation": marathi_dev if script == "devanagari" else marathi_rom,
+                        "translation": marathi_dev if script in ("native", "devanagari") else marathi_rom,
                         "translation_native": marathi_dev,
                         "translation_roman": marathi_rom,
                         "english_meaning": pair["english"],
@@ -326,7 +330,7 @@ class ModularTranslationService(BaseTranslationService):
                         "source_text": text,
                         "source_language": source_language,
                         "target_language": target_language,
-                        "translation": hindi_dev if script == "devanagari" else hindi_rom,
+                        "translation": hindi_dev if script in ("native", "devanagari") else hindi_rom,
                         "translation_native": hindi_dev,
                         "translation_roman": hindi_rom,
                         "english_meaning": pair["english"],
@@ -407,7 +411,7 @@ class ModularTranslationService(BaseTranslationService):
             "source_text": text,
             "source_language": source_language,
             "target_language": target_language,
-            "translation": native_tr if script == "devanagari" else roman_tr,
+            "translation": native_tr if script in ("native", "devanagari") else roman_tr,
             "translation_native": native_tr,
             "translation_roman": roman_tr,
             "english_meaning": eng,

@@ -61,3 +61,6 @@ Thumbs.db
 data/raw/
 *.bin
 ml/**/weights/*.tmp
+.demo/
+.playwright-cli/
+output/

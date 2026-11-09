@@ -218,3 +218,35 @@ class LearningActivity(Base):
     value = Column(Integer, default=1, nullable=False)
     xp_awarded = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=utc_now, nullable=False, index=True)
+
+
+class ArcadeSession(Base):
+    """Private question snapshots and server-owned scores for multilingual games."""
+    __tablename__ = "arcade_sessions"
+    id = Column(String(36), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    language = Column(String(30), nullable=False, index=True)
+    mode = Column(String(30), nullable=False)
+    state_json = Column(Text, nullable=False)
+    score = Column(Integer, default=0, nullable=False)
+    correct_count = Column(Integer, default=0, nullable=False)
+    answer_count = Column(Integer, default=0, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class ArcadeReview(Base):
+    """Per-language/mode spaced review state; question snapshots never leave grading APIs."""
+    __tablename__ = "arcade_reviews"
+    __table_args__ = (UniqueConstraint("user_id", "language", "mode", "record"),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    language = Column(String(30), nullable=False, index=True)
+    mode = Column(String(30), nullable=False)
+    record = Column(String(40), nullable=False)
+    question_json = Column(Text, nullable=False)
+    correct_streak = Column(Integer, default=0, nullable=False)
+    mistakes = Column(Integer, default=0, nullable=False)
+    due_at = Column(DateTime, nullable=False, index=True)
+    updated_at = Column(DateTime, nullable=False)

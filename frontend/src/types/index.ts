@@ -1,6 +1,6 @@
 export type ScriptMode = 'roman' | 'devanagari' | 'both';
 export type BridgeLevel = 'beginner' | 'intermediate' | 'advanced';
-export type Language = 'hindi' | 'marathi';
+export type { Language } from '../config/languages';
 
 export interface VocabularyItem {
   source_word: string;
@@ -30,6 +30,7 @@ export interface ExampleItem {
 }
 
 export interface AnalyzeResponse {
+  target_language: string;
   detected_language: string;
   detected_script: string;
   normalized_text: string;

@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-11-08T22:42:23.293020+00:00",
+  "counts": {
+    "lexicon_words": {
+      "bengali": 23899,
+      "hindi": 23931,
+      "marathi": 24383
+    },
+    "transliteration_train_pairs": 328023,
+    "transliteration_train_by_language": {
+      "marathi": 118530,
+      "hindi": 119200,
+      "bengali": 90293
+    },
+    "transliteration_validation_words": 7497,
+    "transliteration_test_words": 7500,
+    "translation_teaching_multiway_rows": 997,
+    "translation_test_multiway_rows": 1012,
+    "translation_train_directional_pairs": 5982
+  },
+  "sha256": {
+    "data\\processed\\expanded\\lexicon.jsonl": "39be92ad677ff698d1d26a5fa552e11b37b9326d3cddfd402ca5e29abe9d0d30",
+    "data\\processed\\expanded\\translation\\teaching.jsonl": "b832e43d3ac4c24d3fc4f18e0d71923b4bb88d6ef999201eca89288091640f5f",
+    "data\\processed\\expanded\\translation\\test.jsonl": "b4dedb2c3c8b4f37bcc0bb6ae41f0769fa704cf8e586f33df26ebc194c9c1dee",
+    "data\\processed\\expanded\\translation\\train.jsonl": "3a1086a8ad11904dcefd7f6a571d0197bfc253b3de156ca161abd917ca6e426b",
+    "data\\processed\\expanded\\transliteration\\test.jsonl": "7641d61eaa2961aee660ac72aadd4f5a4a84aa0fd7f8102f9640dc6942b317e6",
+    "data\\processed\\expanded\\transliteration\\train.jsonl": "b72963b0a7e28852c1085822765e3acc8be7b4771af14b939eb273ab734a653d",
+    "data\\processed\\expanded\\transliteration\\validation.jsonl": "683a13407bc9c581a87a195cbc34fc0fe83756b80ce25c4641fa8267fa2c253b"
+  },
+  "raw_sha256": {
+    "bengali.dev.txt": "aee7fe16ec08ee5997a1aeb85e6bba27072cbb108b193fa20ca9bfc084872f65",
+    "bengali.devtest.txt": "6699aa77b4c93d520971868cd5ff06a1e3b5ddfde852da13337f5194bc23086f",
+    "bn.dev.tsv": "5d85422446dc80129506d8b21657b9283c6fb437ff90292eb62ca24aafb3e525",
+    "bn.test.tsv": "cb52e865de8f52b31d84062f50c3539a024d9717c0b1ba6c924aea2534233a69",
+    "bn.train.tsv": "1ebdb9991d66315af330123e7ca7d72ed9ceef6c93ec353dc0f947046415fa04",
+    "english.dev.txt": "51a25f527fd81f428b6933d85a2f5e5544af92aa82042c7fbf0c4120327fba0a",
+    "english.devtest.txt": "612e9fbe87997617c0fa8fa8929654a4f49b728d96738112c2b86ef6a1d78d88",
+    "flores200.tar.gz": "b8b0b76783024b85797e5cc75064eb83fc5288b41e9654dabc7be6ae944011f6",
+    "hi.dev.tsv": "62019ba0e046ceffd7211a2797daf2d2970da77586ee056dcecaa34c38392bce",
+    "hi.test.tsv": "37dccdd2ca18a520267588b472f293ce805a1444a5ca2a99169417da17d9bafd",
+    "hi.train.tsv": "4b3f872d3363a91f949dfb640acab6a968ed7d2d65829a22af662c3e99ef7803",
+    "hindi.dev.txt": "639d0f659eb74c98bcb82d0946495a7041d894dcd2c20a10daac54da9a935e22",
+    "hindi.devtest.txt": "5f5fd39acadca29fb044a0398e81869e48f37de979df086f2fad4a7d1fd2d015",
+    "marathi.dev.txt": "8bb0e07c3c252ba6cb01c86a7ded5683ea352fca0c72bb70d9a4ba7ae45eba59",
+    "marathi.devtest.txt": "63d0d1bfdcfa7f8a1538c87cab65b0e5e010515529ed286b1f8b2a51cc62b99f",
+    "mr.dev.tsv": "f58c62fd2d84af3195d1a36acfcb6ea8625c3e8a6663802fed201ade3a1b1d95",
+    "mr.test.tsv": "d16fc7fc5c9252523eefd81fb2bdd0894eeaa64655dd9a52f53c0d1f6269ae1a",
+    "mr.train.tsv": "ea920a85f4324d4277b171cdf78b8afc9130a6009a9d7414ee043470f45f73f4"
+  },
+  "sources": [
+    {
+      "name": "Google Dakshina v1.0",
+      "url": "https://storage.googleapis.com/gresearch/dakshina/dakshina_dataset_v1.0.tar",
+      "documentation": "https://github.com/google-research-datasets/dakshina",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "name": "FLORES-200",
+      "url": "https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz",
+      "documentation": "https://github.com/facebookresearch/flores/tree/main/flores200",
+      "license": "CC-BY-SA-4.0"
+    }
+  ],
+  "notes": [
+    "Teaching uses FLORES dev; benchmark uses devtest. Never evaluate on teaching examples.",
+    "Lexicon entries are spelling/romanization pairs, not dictionary definitions.",
+    "New corpora were downloaded, filtered and prepared; model weights have not been retrained.",
+    "Legacy benchmark files and reviewed sentence memory are unchanged."
+  ]
+}

@@ -1,3 +1,5 @@
+import { MultilingualArcade } from './components/learn/MultilingualArcade';
+import { languages, languageEntries } from './config/languages';
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { BridgeModeSelector } from './components/BridgeModeSelector';
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const [learnMode, setLearnMode] = useState<'arcade' | 'course'>('arcade');
   const [currentView, setCurrentView] = useState<'translate' | 'learn'>('translate');
   const [sourceLang, setSourceLang] = useState<Language>('hindi');
   const [targetLang, setTargetLang] = useState<Language>('marathi');
@@ -44,6 +47,8 @@ export default function App() {
     analyzeController.current?.abort();
     setLoading(false);
     setAnalysisResult(null);
+    setIsExplainOpen(false);
+    setError(null);
   };
   useEffect(() => () => analyzeController.current?.abort(), []);
   const refreshProgress = () => api.getProgress().then(p => setReviewCount(p.review_due_count)).catch(() => {});
@@ -81,6 +86,8 @@ export default function App() {
   };
 
   const quickSamples = [
+    { label: 'Bengali greeting', text: 'আপনি কেমন আছেন?', s: 'bengali', t: 'hindi' },
+    { label: 'Learn Bengali', text: 'मुझे बंगाली सीखनी है।', s: 'hindi', t: 'bengali' },
     { label: 'Learn Marathi', text: 'Mujhe Marathi seekhni hai', s: 'hindi', t: 'marathi' },
     { label: 'College tomorrow (Hindi)', text: 'Mujhe kal college jaana hai', s: 'hindi', t: 'marathi' },
     { label: 'College tomorrow (Marathi)', text: 'Mala udya college-la jaycha aahe', s: 'marathi', t: 'hindi' },
@@ -89,7 +96,9 @@ export default function App() {
   ];
 
   const handleSwapLanguages = () => {
+    const translatedText = analysisResult?.translation_native;
     invalidateAnalysis();
+    if (translatedText) setInputText(translatedText);
     const nextSource = targetLang;
     const nextTarget = sourceLang;
     setSourceLang(nextSource);
@@ -119,17 +128,12 @@ export default function App() {
       if (requestId !== analyzeReqId.current) return;
       if (openExplanation) setIsExplainOpen(true);
       setAnalysisResult(res);
-      if (res.detected_language === 'marathi' && effectiveSource === 'hindi') {
-        setSourceLang('marathi');
-        setTargetLang('hindi');
-      } else if (res.detected_language === 'hindi' && effectiveSource === 'marathi') {
-        setSourceLang('hindi');
-        setTargetLang('marathi');
-      }
+      if (res.detected_language in languages) setSourceLang(res.detected_language as Language);
+      if (res.target_language in languages) setTargetLang(res.target_language as Language);
     } catch (err: any) {
       if (controller.signal.aborted || requestId !== analyzeReqId.current) return;
       console.error(err);
-      setError('Failed to analyze sentence. Ensure backend server is running.');
+      setError(err.message || 'Could not analyze this sentence. Please retry.');
     } finally {
       if (requestId === analyzeReqId.current) setLoading(false);
     }
@@ -174,17 +178,20 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {currentView === 'learn' ? (
-          <LearnHub onProgressChange={refreshProgress} />
+          <div className="w-full space-y-5">
+            <div className="flex flex-wrap gap-3"><button onClick={()=>setLearnMode('arcade')} className={`rounded-xl px-5 py-3 border ${learnMode==='arcade' ? 'bg-indigo-600 border-indigo-400' : 'border-slate-700'}`}>Multilingual Arcade</button><button onClick={()=>setLearnMode('course')} className={`rounded-xl px-5 py-3 border ${learnMode==='course' ? 'bg-indigo-600 border-indigo-400' : 'border-slate-700'}`}>Marathi Course</button></div>
+            {learnMode==='arcade' ? <MultilingualArcade initialLanguage={targetLang} onProgressChange={refreshProgress} /> : <LearnHub onProgressChange={refreshProgress} />}
+          </div>
         ) : (
           <>
             {/* Hero Section */}
             <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Speak freely in Roman letters • Learn Devanagari at your own pace</span>
+            <span>Speak freely in Roman letters • Learn native scripts at your own pace</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-            Bridge Hindi & Marathi effortlessly
+            Build bridges across Indian languages
           </h1>
           <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
             Natural translations with deep grammar explanations, bilingual alignments, and script-adaptive learning.
@@ -193,7 +200,7 @@ export default function App() {
 
         {/* Bridge Mode Selector */}
         <BridgeModeSelector
-          currentLevel={bridgeLevel}
+          targetLanguage={targetLang} currentLevel={bridgeLevel}
           onChange={handleBridgeLevelChange}
         />
 
@@ -209,11 +216,10 @@ export default function App() {
                   <select
                     id="source-language-select"
                     value={sourceLang}
-                    onChange={(e) => { invalidateAnalysis(); setSourceLang(e.target.value as Language); setTargetLang(e.target.value === "hindi" ? "marathi" : "hindi"); }}
+                    onChange={(e) => { invalidateAnalysis(); setSourceLang(e.target.value as Language); if (e.target.value === targetLang) setTargetLang(sourceLang); }}
                     className="appearance-none bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="hindi">Hindi</option>
-                    <option value="marathi">Marathi</option>
+                    {languageEntries.map(([id, spec]) => <option key={id} value={id}>{spec.label}</option>)}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
                 </div>
@@ -236,11 +242,10 @@ export default function App() {
                   <select
                     id="target-language-select"
                     value={targetLang}
-                    onChange={(e) => { invalidateAnalysis(); setTargetLang(e.target.value as Language); setSourceLang(e.target.value === "hindi" ? "marathi" : "hindi"); }}
+                    onChange={(e) => { invalidateAnalysis(); setTargetLang(e.target.value as Language); if (e.target.value === sourceLang) setSourceLang(targetLang); }}
                     className="appearance-none bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="marathi">Marathi</option>
-                    <option value="hindi">Hindi</option>
+                    {languageEntries.map(([id, spec]) => <option key={id} value={id}>{spec.label}</option>)}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
                 </div>
@@ -257,9 +262,9 @@ export default function App() {
                   onChange={(e) => setScriptMode(e.target.value as ScriptMode)}
                   className="appearance-none bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 capitalize"
                 >
-                  <option value="both">Both (Roman & Devanagari)</option>
+                  <option value="both">Both (Roman & Native)</option>
                   <option value="roman">Roman Only</option>
-                  <option value="devanagari">Devanagari Only</option>
+                  <option value="devanagari">Native Script Only</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
               </div>
@@ -274,14 +279,14 @@ export default function App() {
                 rows={3}
                 value={inputText}
                 onChange={handleInputChange}
-                placeholder="Type or enter a sentence in English/Roman or Devanagari... (e.g. Mujhe Marathi seekhni hai)"
+                placeholder="Type or enter a sentence in Roman letters or native script... (e.g. Mujhe Marathi seekhni hai)"
                 className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-base sm:text-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-medium leading-relaxed"
               />
 
               {/* Transliteration badge preview */}
               {transliterationPreview && (
                 <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs bg-slate-900/90 border border-indigo-500/30 px-3 py-1 rounded-lg backdrop-blur-md">
-                  <span className="text-slate-400 font-mono">Devanagari preview:</span>
+                  <span className="text-slate-400 font-mono">Native script preview:</span>
                   <span className="text-indigo-300 font-devanagari font-bold">{transliterationPreview}</span>
                 </div>
               )}
@@ -308,10 +313,11 @@ export default function App() {
             </div>
           </div>
 
+          {(sourceLang === 'bengali' || targetLang === 'bengali') && <p className="text-sm text-amber-200 p-3">Bengali beta: Roman spellings are experimental; check the native text. Find starter lessons and script games in Learn. Lesson labels show which material still needs review.</p>}
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-800/80">
             <div className="text-xs text-slate-400">
-              Works with both <span className="text-indigo-300 font-mono">Roman letters</span> and <span className="text-white font-devanagari font-semibold">देवनागरी</span>
+              Works with both <span className="text-indigo-300 font-mono">Roman letters</span> and <span className="text-white font-devanagari font-semibold">{languages[sourceLang].script_label}</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -321,7 +327,7 @@ export default function App() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white transition-all"
               >
                 <BookOpen className="w-4 h-4 text-indigo-400" />
-                <span>Quick Practice</span>
+                <span>Marathi Practice</span>
               </button>
 
               <button

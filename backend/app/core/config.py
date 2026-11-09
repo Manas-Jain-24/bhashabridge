@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 import json
 from typing import Any, List, Optional, Union, Literal
-from pydantic import field_validator
+from pydantic import field_validator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent.parent
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     DATABASE_URL: str = DEFAULT_DATABASE_URL
     USE_MOCK_MODELS: bool = False
+    BENGALI_NEURAL_TRANSLITERATION: bool = True
     TESTING: bool = False
     INIT_DB_ON_STARTUP: bool = True
     TRANSLATION_ENGINE: Literal["indictrans2", "modular", "m2m100"] = "indictrans2"
@@ -22,6 +23,8 @@ class Settings(BaseSettings):
     INDICTRANS2_MODEL_CHECKPOINT: str = "ai4bharat/indictrans2-indic-indic-dist-320M"
     HF_TOKEN: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_TIMEOUT_SECONDS: float = Field(15.0, ge=1, le=60)
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

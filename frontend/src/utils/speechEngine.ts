@@ -1,3 +1,4 @@
+import { languages, type Language } from '../config/languages';
 /**
  * BhashaBridge — Client-Side Speech & Audio Voice Engine
  * Uses Web Speech API (SpeechSynthesis & SpeechRecognition) for:
@@ -31,7 +32,7 @@ export class SpeechEngine {
    */
   public speak(
     text: string,
-    language: 'marathi' | 'hindi' = 'marathi',
+    language: string = 'marathi',
     rate: number = 0.85,
     onEnd?: () => void
   ) {
@@ -43,14 +44,14 @@ export class SpeechEngine {
     utterance.rate = rate; // 0.85x speed allows clear distinction of Marathi retroflex consonants
     utterance.pitch = 1.0;
 
-    const targetLangCode = language === 'marathi' ? 'mr-IN' : 'hi-IN';
+    const targetLangCode = languages[language as Language]?.speech || 'hi-IN';
     utterance.lang = targetLangCode;
 
     // Look for matching Marathi or Hindi native voice
     const matchingVoice = this.voices.find(
       (v) =>
         v.lang === targetLangCode ||
-        v.lang.toLowerCase().startsWith(language === 'marathi' ? 'mr' : 'hi') ||
+        v.lang.toLowerCase().startsWith(targetLangCode.split('-')[0]) ||
         v.name.toLowerCase().includes(language)
     );
 

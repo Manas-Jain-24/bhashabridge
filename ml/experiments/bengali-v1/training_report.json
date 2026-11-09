@@ -1,0 +1,44 @@
+{
+  "language": "bengali",
+  "seed": 42,
+  "device": "cpu",
+  "torch_version": "2.14.1+cpu",
+  "training_examples": 90293,
+  "validation_examples": 2500,
+  "train_sha256": "b72963b0a7e28852c1085822765e3acc8be7b4771af14b939eb273ab734a653d",
+  "validation_sha256": "683a13407bc9c581a87a195cbc34fc0fe83756b80ce25c4641fa8267fa2c253b",
+  "batch_size": 256,
+  "learning_rate": 0.003,
+  "threads": 2,
+  "best_validation_loss": 1.0722694635391234,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.1879120592355052,
+      "validation_loss": 1.1761565566062928,
+      "elapsed_seconds": 295.7759840488434
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.6424771182597866,
+      "validation_loss": 1.0996400237083435,
+      "elapsed_seconds": 589.4043881893158
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.5397111764204063,
+      "validation_loss": 1.0722694635391234,
+      "elapsed_seconds": 898.002284526825
+    }
+  ],
+  "status": "interrupted_after_saved_checkpoint",
+  "requested_epochs": 8,
+  "completed_epochs": 3,
+  "interruption": "System memory exhausted in epoch four while translation evaluation was active; epoch-three checkpoint exported.",
+  "architecture": {
+    "embedding_dim": 64,
+    "hidden_dim": 128,
+    "packed_encoder": true,
+    "trainable_parameters": 438335
+  }
+}

@@ -1,11 +1,19 @@
+from app.core.languages import InputText
+from app.core.languages import Language, AutoLanguage
 from typing import Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class TranslateRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=2000, description="Source text to translate")
-    source_language: Literal["hindi", "marathi"] = Field("hindi", description="hindi or marathi")
-    target_language: Literal["marathi", "hindi"] = Field("marathi", description="marathi or hindi")
-    script: Literal["both", "devanagari", "roman", "latin"] = Field("both", description="latin, devanagari, or both")
+    text: InputText = Field(..., min_length=1, max_length=2000, description="Source text to translate")
+    source_language: Language = Field("hindi", description="Registered source language")
+    target_language: Language = Field("marathi", description="Registered target language")
+    script: Literal["both", "native", "devanagari", "roman", "latin"] = Field("both", description="latin, devanagari, or both")
+
+    @model_validator(mode="after")
+    def distinct_languages(self):
+        if self.source_language == self.target_language:
+            raise ValueError("Choose different source and target languages")
+        return self
 
 class TranslateResponse(BaseModel):
     source_text: str

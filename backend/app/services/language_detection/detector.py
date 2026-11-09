@@ -1,3 +1,4 @@
+from app.core.languages import LANGUAGES, has_native
 import re
 from typing import Optional
 from app.services.base import BaseLanguageDetector
@@ -47,6 +48,9 @@ class RuleBasedLanguageDetector(BaseLanguageDetector):
             return "latin"
 
         clean = text.strip()
+        for name, spec in LANGUAGES.items():
+            if spec["script"] != "devanagari" and has_native(clean, name):
+                return spec["script"]
         devanagari_count = len(self.DEVANAGARI_RANGE.findall(clean))
         latin_count = len(self.LATIN_RANGE.findall(clean))
 
@@ -66,6 +70,11 @@ class RuleBasedLanguageDetector(BaseLanguageDetector):
     def detect_language(self, text: str, hint_script: Optional[str] = None) -> str:
         if not text or not text.strip():
             return "hindi"
+
+        unique_scripts = {spec["script"] for spec in LANGUAGES.values() if sum(other["script"] == spec["script"] for other in LANGUAGES.values()) == 1}
+        for name, spec in LANGUAGES.items():
+            if spec["script"] in unique_scripts and has_native(text, name):
+                return name
 
         norm_words = [w.lower().strip(".,!?:;\"'()[]{}") for w in text.split()]
         marathi_hits = sum(1 for w in norm_words if w in self.MARATHI_CUES)

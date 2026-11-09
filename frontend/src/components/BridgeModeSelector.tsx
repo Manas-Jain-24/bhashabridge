@@ -1,13 +1,16 @@
+import { languages, type Language } from '../config/languages';
 import React from 'react';
 import { BridgeLevel } from '../types';
 import { ShieldCheck, Sparkles, Feather } from 'lucide-react';
 
 interface BridgeModeSelectorProps {
   currentLevel: BridgeLevel;
+  targetLanguage?: Language;
   onChange: (level: BridgeLevel) => void;
 }
 
 export const BridgeModeSelector: React.FC<BridgeModeSelectorProps> = ({
+  targetLanguage = 'marathi',
   currentLevel,
   onChange,
 }) => {
@@ -16,21 +19,21 @@ export const BridgeModeSelector: React.FC<BridgeModeSelectorProps> = ({
       id: 'beginner',
       title: 'Beginner',
       subtitle: 'Roman Script Only',
-      example: 'Mala Marathi shikaychi aahe',
+      example: languages[targetLanguage].sample_roman,
       icon: Feather,
     },
     {
       id: 'intermediate',
       title: 'Intermediate (Bridge)',
-      subtitle: 'Roman + Devanagari',
-      example: 'Mala Marathi शिकायची आहे',
+      subtitle: 'Roman + Native',
+      example: `${languages[targetLanguage].sample_roman} / ${languages[targetLanguage].sample_native}`,
       icon: Sparkles,
     },
     {
       id: 'advanced',
       title: 'Advanced',
-      subtitle: 'Devanagari Only',
-      example: 'मला मराठी शिकायची आहे',
+      subtitle: 'Native Script Only',
+      example: languages[targetLanguage].sample_native,
       icon: ShieldCheck,
     },
   ];
@@ -43,7 +46,7 @@ export const BridgeModeSelector: React.FC<BridgeModeSelectorProps> = ({
           Bridge Script Mode
         </span>
         <span className="text-[11px] text-slate-400">
-          Gradual transition from Latin to Devanagari
+          Gradual transition from Latin to native script
         </span>
       </div>
 

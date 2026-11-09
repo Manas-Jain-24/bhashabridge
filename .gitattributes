@@ -1,0 +1,6 @@
+# These files have published byte-level checksums. Preserve their original bytes
+# across Windows/Linux checkouts instead of applying automatic newline conversion.
+data/processed/expanded/** -text
+ml/experiments/bengali-v1/vocab.json -text
+ml/models/bengali-v1/vocab.json -text
+*.pt -text

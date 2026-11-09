@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "language": "bengali",
+  "direction": "roman_to_native",
+  "status": "experimental",
+  "promoted_at_utc": "2026-11-08T23:24:18.186163+00:00",
+  "selection_split": "validation",
+  "weights_sha256": "5729a7e18cf25e75c8d9431429ae90de48edf966bea07862009bcd1693fcd19b",
+  "vocab_sha256": "f7ccf9eabba8457ada4bd80e870260720c6b785a6b8c752290ee494ff08ed0a7",
+  "validation_neural": {
+    "exact_match_percent": 35.68,
+    "character_error_rate": 0.17714733164678953
+  },
+  "validation_baseline": {
+    "exact_match_percent": 9.16,
+    "character_error_rate": 0.3712203348994097
+  },
+  "license": "CC-BY-SA-4.0",
+  "source": "Google Dakshina v1.0; see data/README.md",
+  "note": "Validation improvement is relative; absolute exact match is limited. Lexical and common-word mappings take precedence."
+}

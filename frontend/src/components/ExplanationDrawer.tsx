@@ -52,7 +52,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
 
   // Generate 3 plausible choices with common learner trap distractors
   const quizOptions = useMemo(() => {
-    if (!currentExample) return [];
+    if (!currentExample || data?.target_language !== 'marathi') return [];
 
     const correct = currentExample.target_sentence;
 
@@ -92,6 +92,8 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
       distractor2 = distractor1.replace('आहे', 'नाही');
     }
 
+    if (new Set([correct, distractor1, distractor2]).size !== 3) return [];
+
     // Deterministic shuffle based on quizIndex
     const options = [
       { text: correct, isCorrect: true },
@@ -105,7 +107,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
       return [options[2], options[1], options[0]];
     }
     return options;
-  }, [currentExample, quizIndex]);
+  }, [currentExample, quizIndex, data?.target_language]);
 
   const handleSelectQuizOption = (index: number, isCorrect: boolean) => {
     if (quizStatus !== 'unanswered') return;
@@ -132,7 +134,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
 
   const handleSpeak = (text: string, index: number) => {
     setPlayingIndex(index);
-    speech.speak(text, 'marathi', 0.85, () => {
+    speech.speak(text, data?.target_language || 'marathi', 0.85, () => {
       setPlayingIndex(null);
     });
   };
@@ -142,6 +144,16 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
+
+  useEffect(() => {
+    setQuizIndex(0);
+    setSelectedOption(null);
+    setQuizStatus('unanswered');
+    setSelectedWordIndex(0);
+    setHoveredWordIndex(null);
+    setPlayingIndex(null);
+    setCopiedIndex(null);
+  }, [data]);
 
   useEffect(() => {
     if (isOpen) {

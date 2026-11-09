@@ -92,3 +92,13 @@ def health_check():
             "explanation_tutor": "gemini_sensei" if llm_active else "local_ud_rules"
         }
     }
+
+
+@app.get("/api/languages")
+def supported_languages():
+    from app.core.languages import LANGUAGES
+    return LANGUAGES
+
+
+from app.api.routes import arcade
+app.include_router(arcade.router, prefix="/api", tags=["Multilingual Arcade"])

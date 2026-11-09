@@ -10,6 +10,7 @@ Outputs:
 """
 
 import json
+from collections import Counter
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -220,6 +221,20 @@ def main():
         "translation": analyze_translation(),
         "educational_learning_corpus": analyze_learning()
     }
+
+    expanded = STATS_FILE.parent / "processed/expanded/manifest.json"
+    if expanded.exists():
+        stats["expanded_corpora"] = json.loads(expanded.read_text(encoding="utf-8"))["counts"]
+    vocabulary=DATA_DIR/'lessons/starter_vocabulary.json'
+    if vocabulary.exists():
+        words=json.loads(vocabulary.read_text(encoding='utf-8'))['words']
+        languages=json.loads((BASE_DIR/'shared/languages.json').read_text(encoding='utf-8'))
+        stats['starter_vocabulary']={'words_by_language':{lang:sum(lang in word for word in words) for lang in languages},'review_status':'editorial_draft'}
+    stats['starter_courses']={}
+    for path in sorted((DATA_DIR/'lessons').glob('*_starter.json')):
+        course=json.loads(path.read_text(encoding='utf-8'))
+        stats['starter_courses'][course['language']]={'units':len(course['units']),'phrases':sum(len(u['items']) for u in course['units']),
+            'phrases_by_review_status':dict(Counter(u['review_status'] for u in course['units'] for _ in u['items']))}
 
     with open(STATS_FILE, "w", encoding="utf-8") as f:
         json.dump(stats, f, ensure_ascii=False, indent=2)

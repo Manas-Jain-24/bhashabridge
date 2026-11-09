@@ -1,3 +1,4 @@
+from app.core.languages import rule_pair, validate_language
 import json
 import logging
 import re
@@ -180,6 +181,18 @@ class HybridExplanationEngine(BaseExplanationService):
         """
         Public entrypoint with automatic fallback to preserved legacy engine if needed.
         """
+        validate_language(source_language)
+        validate_language(target_language)
+        if not rule_pair(source_language, target_language):
+            enrichment = llm_tutor.explain(source_text, source_language, target_text, target_language)
+            return {
+                "summary": (enrichment or {}).get("summary", "Reviewed grammar lessons are not available for this pair yet."),
+                "word_explanations": [], "grammar_points": [],
+                "differences": (enrichment or {}).get("differences", []),
+                "common_mistakes": [], "examples": [],
+                "explanation_source": "hybrid_gemini" if enrichment else "unavailable",
+                "cultural_mnemonic": (enrichment or {}).get("cultural_mnemonic"),
+            }
         try:
             return self._explain_enhanced(
                 source_text=source_text,

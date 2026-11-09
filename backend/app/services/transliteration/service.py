@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.core.languages import LANGUAGES, validate_language, check_source_script
 import os
 import sys
 import re
@@ -109,6 +111,15 @@ class NeuralTransliterationService(BaseTransliterationService):
         - In devanagari_to_latin: Devanagari tokens are transliterated, Latin tokens preserved.
         - All whitespace, punctuation, digits, and symbols are preserved in place.
         """
+        validate_language(language)
+        check_source_script(text, language)
+        direction = {"latin_to_native": "latin_to_devanagari", "native_to_latin": "devanagari_to_latin"}.get(direction, direction)
+        backend = LANGUAGES[language]["transliteration_backend"]
+        if backend == "bengali_phonetic":
+            from app.services.transliteration.bengali import transliterate_bengali
+            return transliterate_bengali(text, direction)
+        if backend != "devanagari":
+            raise HTTPException(503, "Transliteration is not available for this language yet.")
         if not text:
             return ""
 

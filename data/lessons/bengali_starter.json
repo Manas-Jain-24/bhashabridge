@@ -1,0 +1,44 @@
+{
+  "language": "bengali",
+  "version": 1,
+  "title": "Bengali Foundations",
+  "review_note": "Greetings are cross-checked against CBSE Bhasha Sangam. Other units are authored drafts awaiting native-speaker review. None are imported into reviewed translation memory.",
+  "units": [
+    {"id":"greetings","title":"1 · First conversations","review_status":"source_checked","source_url":"https://cbseacademic.nic.in/web_material/circulars/2018/guidelines_bhasha_sangam.pdf","note":"Use আপনি for respectful address. Roman spellings are pronunciation aids, not a single official spelling standard.","items":[
+      {"native":"নমস্কার!","roman":"nomoshkar","english":"Hello!"},
+      {"native":"আপনি কেমন আছেন?","roman":"apni kemon achhen","english":"How are you?"},
+      {"native":"আমি ভালো আছি।","roman":"ami bhalo achhi","english":"I am fine."},
+      {"native":"আপনার নাম কি?","roman":"apnar nam ki","english":"What is your name?"}
+    ]},
+    {"id":"politeness","title":"2 · Polite exchanges","review_status":"editorial_draft","note":"Keep requests polite. এই and সেটা point to things near and farther away respectively; this unit focuses on short set phrases.","items":[
+      {"native":"ধন্যবাদ।","roman":"dhonnobad","english":"Thank you."},
+      {"native":"হ্যাঁ।","roman":"hyan","english":"Yes."},
+      {"native":"না।","roman":"na","english":"No."},
+      {"native":"দয়া করে আবার বলুন।","roman":"doya kore abar bolun","english":"Please say it again."}
+    ]},
+    {"id":"learning","title":"3 · Learning together","review_status":"editorial_draft","note":"আমি means I. Bengali verbs carry person and politeness information; these examples use common learner requests.","items":[
+      {"native":"আমি বাংলা শিখছি।","roman":"ami bangla shikhchhi","english":"I am learning Bengali."},
+      {"native":"আমি বুঝতে পারছি না।","roman":"ami bujhte parchhi na","english":"I do not understand."},
+      {"native":"একটু ধীরে বলুন।","roman":"ektu dhire bolun","english":"Please speak a little slowly."},
+      {"native":"এটা কী?","roman":"eta ki","english":"What is this?"}
+    ]},
+    {"id":"daily_needs","title":"4 · Daily needs","review_status":"editorial_draft","note":"চাই expresses wanting; ভালো লাগে expresses liking. জল and পানি are both used for water, with regional preferences.","items":[
+      {"native":"আমি জল চাই।","roman":"ami jol chai","english":"I want water."},
+      {"native":"আমি চা চাই।","roman":"ami cha chai","english":"I want tea."},
+      {"native":"আমার খিদে পেয়েছে।","roman":"amar khide peyechhe","english":"I am hungry."},
+      {"native":"আমার চা ভালো লাগে।","roman":"amar cha bhalo lage","english":"I like tea."}
+    ]},
+    {"id":"getting_around","title":"5 · Getting around","review_status":"editorial_draft","note":"কোথায় asks where; কত asks how much. যাবেন is a respectful future form for you.","items":[
+      {"native":"বাজার কোথায়?","roman":"bajar kothay","english":"Where is the market?"},
+      {"native":"এটার দাম কত?","roman":"etar dam koto","english":"How much does this cost?"},
+      {"native":"আপনি কোথায় যাবেন?","roman":"apni kothay jaben","english":"Where will you go?"},
+      {"native":"আমি বাড়ি যাচ্ছি।","roman":"ami bari jachchhi","english":"I am going home."}
+    ]},
+    {"id":"introductions","title":"6 · About yourself","review_status":"editorial_draft","note":"আমার means my. Bengali present-tense noun statements often omit an explicit equivalent of English am/is/are.","items":[
+      {"native":"আমার নাম মায়া।","roman":"amar nam maya","english":"My name is Maya."},
+      {"native":"আমি একজন ছাত্র।","roman":"ami ekjon chhatro","english":"I am a male student."},
+      {"native":"আমি একজন ছাত্রী।","roman":"ami ekjon chhatri","english":"I am a female student."},
+      {"native":"আপনার সঙ্গে দেখা হয়ে ভালো লাগল।","roman":"apnar shonge dekha hoye bhalo laglo","english":"It was nice to meet you."}
+    ]}
+  ]
+}

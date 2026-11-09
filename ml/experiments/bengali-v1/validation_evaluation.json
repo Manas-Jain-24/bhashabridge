@@ -1,0 +1,388 @@
+{
+  "language": "bengali",
+  "split": "validation",
+  "examples": 2500,
+  "sampling": "One preferred Roman spelling per held-out native-word group; not all aliases.",
+  "test_sha256": "683a13407bc9c581a87a195cbc34fc0fe83756b80ce25c4641fa8267fa2c253b",
+  "weights_sha256": "c6c157bf3455ba797f4ae15b253865d30a3975b54a8e07771728b8c77606c86a",
+  "vocab_sha256": "f7ccf9eabba8457ada4bd80e870260720c6b785a6b8c752290ee494ff08ed0a7",
+  "best_epoch": 3,
+  "neural": {
+    "exact_match_percent": 35.68,
+    "character_error_rate": 0.17714733164678953
+  },
+  "current_app_fallback": {
+    "exact_match_percent": 9.16,
+    "character_error_rate": 0.3712203348994097
+  },
+  "promotion_eligible": true,
+  "limitations": [
+    "Unicode-codepoint CER after NFC normalization, not grapheme or pronunciation accuracy.",
+    "Word-level benchmark does not measure sentence quality or names.",
+    "The existing fallback includes fixed common-word mappings and a training-only lexical lookup."
+  ],
+  "examples_preview": [
+    {
+      "roman": "angkush",
+      "reference": "অংকুশ",
+      "neural": "অঙ্কুষ",
+      "fallback": "অঙ্কুশ"
+    },
+    {
+      "roman": "ongshogrohon",
+      "reference": "অংশগ্রহন",
+      "neural": "অংশগ্রহণ",
+      "fallback": "ওঙ্শোগ্রোহোন"
+    },
+    {
+      "roman": "ongshogrohoner",
+      "reference": "অংশগ্রহনের",
+      "neural": "অংশগ্রহনের",
+      "fallback": "ওঙ্শোগ্রোহোনের"
+    },
+    {
+      "roman": "octane",
+      "reference": "অকটেন",
+      "neural": "অক্টনে",
+      "fallback": "ওcতনে"
+    },
+    {
+      "roman": "akreetokarjo",
+      "reference": "অকৃতকার্য",
+      "neural": "আকৃতকরর্য",
+      "fallback": "অক্রীতোকর্জো"
+    },
+    {
+      "roman": "akkhar",
+      "reference": "অক্ষর",
+      "neural": "আক্ষর",
+      "fallback": "অক্খর"
+    },
+    {
+      "roman": "akkharke",
+      "reference": "অক্ষরকে",
+      "neural": "আক্ষরকে",
+      "fallback": "অক্খর্কে"
+    },
+    {
+      "roman": "akkhunno",
+      "reference": "অক্ষুণ্ণ",
+      "neural": "আক্ষুন্ন",
+      "fallback": "অক্খুন্নো"
+    },
+    {
+      "roman": "oxforde",
+      "reference": "অক্সফোর্ডে",
+      "neural": "অক্সফোর্ডে",
+      "fallback": "ওxফোর্দে"
+    },
+    {
+      "roman": "akhandata",
+      "reference": "অখণ্ডতা",
+      "neural": "আখন্দতা",
+      "fallback": "অখন্দত"
+    },
+    {
+      "roman": "akhando",
+      "reference": "অখন্ড",
+      "neural": "আখন্ড",
+      "fallback": "অখন্দো"
+    },
+    {
+      "roman": "agahir",
+      "reference": "অগভীর",
+      "neural": "আগাহীর",
+      "fallback": "অগহির"
+    },
+    {
+      "roman": "augustin",
+      "reference": "অগাস্টিন",
+      "neural": "অগুস্তিন",
+      "fallback": "ঔগুস্তিন"
+    },
+    {
+      "roman": "ogrodut",
+      "reference": "অগ্রদূত",
+      "neural": "অগ্রদুত",
+      "fallback": "ওগ্রোদুত"
+    },
+    {
+      "roman": "ankita",
+      "reference": "অঙ্কিতা",
+      "neural": "আঙ্কিত",
+      "fallback": "অন্কিত"
+    },
+    {
+      "roman": "ajuhat",
+      "reference": "অজুহাত",
+      "neural": "অযুহাত",
+      "fallback": "অজুহত"
+    },
+    {
+      "roman": "anchalo",
+      "reference": "অঞ্চলও",
+      "neural": "আঞ্চল",
+      "fallback": "অন্চলো"
+    },
+    {
+      "roman": "oncholke",
+      "reference": "অঞ্চলকে",
+      "neural": "অঞ্চলকে",
+      "fallback": "ওন্চোল্কে"
+    },
+    {
+      "roman": "anchalgulir",
+      "reference": "অঞ্চলগুলির",
+      "neural": "অঞ্চলগুলির",
+      "fallback": "অন্চল্গুলির"
+    },
+    {
+      "roman": "oncholgulote",
+      "reference": "অঞ্চলগুলোতে",
+      "neural": "অঞ্চলগুলোতে",
+      "fallback": "ওন্চোল্গুলোতে"
+    },
+    {
+      "roman": "ancholti",
+      "reference": "অঞ্চলটি",
+      "neural": "আঞ্চলটি",
+      "fallback": "অন্চোল্তি"
+    },
+    {
+      "roman": "ancholtike",
+      "reference": "অঞ্চলটিকে",
+      "neural": "আঞ্চলটিকে",
+      "fallback": "অন্চোল্তিকে"
+    },
+    {
+      "roman": "ancholtite",
+      "reference": "অঞ্চলটিতে",
+      "neural": "আঞ্চলটিতে",
+      "fallback": "অন্চোল্তিতে"
+    },
+    {
+      "roman": "anchalsamuha",
+      "reference": "অঞ্চলসমূহ",
+      "neural": "অঞ্চলসমূহ",
+      "fallback": "অন্চল্সমুহ"
+    },
+    {
+      "roman": "anchalsamuher",
+      "reference": "অঞ্চলসমূহের",
+      "neural": "অঞ্চলসমূহের",
+      "fallback": "অন্চল্সমুহের"
+    },
+    {
+      "roman": "anchalsaha",
+      "reference": "অঞ্চলসহ",
+      "neural": "অঞ্চলসহ",
+      "fallback": "অন্চল্সহ"
+    },
+    {
+      "roman": "ancholei",
+      "reference": "অঞ্চলেই",
+      "neural": "আঞ্চলেই",
+      "fallback": "অন্চোলেই"
+    },
+    {
+      "roman": "ancholeo",
+      "reference": "অঞ্চলেও",
+      "neural": "আঞ্চলেও",
+      "fallback": "অন্চোলেও"
+    },
+    {
+      "roman": "atarkitey",
+      "reference": "অতর্কিতে",
+      "neural": "আতরকিতে",
+      "fallback": "অতর্কিতেয"
+    },
+    {
+      "roman": "atitkale",
+      "reference": "অতীতকালে",
+      "neural": "আতিতকালে",
+      "fallback": "অতিত্কলে"
+    }
+  ],
+  "neural_errors": [
+    {
+      "roman": "angkush",
+      "reference": "অংকুশ",
+      "neural": "অঙ্কুষ",
+      "fallback": "অঙ্কুশ"
+    },
+    {
+      "roman": "ongshogrohon",
+      "reference": "অংশগ্রহন",
+      "neural": "অংশগ্রহণ",
+      "fallback": "ওঙ্শোগ্রোহোন"
+    },
+    {
+      "roman": "octane",
+      "reference": "অকটেন",
+      "neural": "অক্টনে",
+      "fallback": "ওcতনে"
+    },
+    {
+      "roman": "akreetokarjo",
+      "reference": "অকৃতকার্য",
+      "neural": "আকৃতকরর্য",
+      "fallback": "অক্রীতোকর্জো"
+    },
+    {
+      "roman": "akkhar",
+      "reference": "অক্ষর",
+      "neural": "আক্ষর",
+      "fallback": "অক্খর"
+    },
+    {
+      "roman": "akkharke",
+      "reference": "অক্ষরকে",
+      "neural": "আক্ষরকে",
+      "fallback": "অক্খর্কে"
+    },
+    {
+      "roman": "akkhunno",
+      "reference": "অক্ষুণ্ণ",
+      "neural": "আক্ষুন্ন",
+      "fallback": "অক্খুন্নো"
+    },
+    {
+      "roman": "akhandata",
+      "reference": "অখণ্ডতা",
+      "neural": "আখন্দতা",
+      "fallback": "অখন্দত"
+    },
+    {
+      "roman": "akhando",
+      "reference": "অখন্ড",
+      "neural": "আখন্ড",
+      "fallback": "অখন্দো"
+    },
+    {
+      "roman": "agahir",
+      "reference": "অগভীর",
+      "neural": "আগাহীর",
+      "fallback": "অগহির"
+    },
+    {
+      "roman": "augustin",
+      "reference": "অগাস্টিন",
+      "neural": "অগুস্তিন",
+      "fallback": "ঔগুস্তিন"
+    },
+    {
+      "roman": "ogrodut",
+      "reference": "অগ্রদূত",
+      "neural": "অগ্রদুত",
+      "fallback": "ওগ্রোদুত"
+    },
+    {
+      "roman": "ankita",
+      "reference": "অঙ্কিতা",
+      "neural": "আঙ্কিত",
+      "fallback": "অন্কিত"
+    },
+    {
+      "roman": "ajuhat",
+      "reference": "অজুহাত",
+      "neural": "অযুহাত",
+      "fallback": "অজুহত"
+    },
+    {
+      "roman": "anchalo",
+      "reference": "অঞ্চলও",
+      "neural": "আঞ্চল",
+      "fallback": "অন্চলো"
+    },
+    {
+      "roman": "ancholti",
+      "reference": "অঞ্চলটি",
+      "neural": "আঞ্চলটি",
+      "fallback": "অন্চোল্তি"
+    },
+    {
+      "roman": "ancholtike",
+      "reference": "অঞ্চলটিকে",
+      "neural": "আঞ্চলটিকে",
+      "fallback": "অন্চোল্তিকে"
+    },
+    {
+      "roman": "ancholtite",
+      "reference": "অঞ্চলটিতে",
+      "neural": "আঞ্চলটিতে",
+      "fallback": "অন্চোল্তিতে"
+    },
+    {
+      "roman": "ancholei",
+      "reference": "অঞ্চলেই",
+      "neural": "আঞ্চলেই",
+      "fallback": "অন্চোলেই"
+    },
+    {
+      "roman": "ancholeo",
+      "reference": "অঞ্চলেও",
+      "neural": "আঞ্চলেও",
+      "fallback": "অন্চোলেও"
+    },
+    {
+      "roman": "atarkitey",
+      "reference": "অতর্কিতে",
+      "neural": "আতরকিতে",
+      "fallback": "অতর্কিতেয"
+    },
+    {
+      "roman": "atitkale",
+      "reference": "অতীতকালে",
+      "neural": "আতিতকালে",
+      "fallback": "অতিত্কলে"
+    },
+    {
+      "roman": "otiteo",
+      "reference": "অতীতেও",
+      "neural": "অটিতেও",
+      "fallback": "ওতিতেও"
+    },
+    {
+      "roman": "atyacharito",
+      "reference": "অত্যাচারিত",
+      "neural": "অত্যাচরিত",
+      "fallback": "অত্যচরিতো"
+    },
+    {
+      "roman": "atyacharer",
+      "reference": "অত্যাচারের",
+      "neural": "আত্যাচারের",
+      "fallback": "অত্যচরের"
+    },
+    {
+      "roman": "odure",
+      "reference": "অদুরে",
+      "neural": "ওদুরে",
+      "fallback": "ওদুরে"
+    },
+    {
+      "roman": "adbhut",
+      "reference": "অদ্ভুত",
+      "neural": "অ্যাডভূত",
+      "fallback": "অদ্ভুত"
+    },
+    {
+      "roman": "adhit",
+      "reference": "অধীত",
+      "neural": "অধিত",
+      "fallback": "অধিত"
+    },
+    {
+      "roman": "adhuna",
+      "reference": "অধুনা",
+      "neural": "অধুন",
+      "fallback": "অধুন"
+    },
+    {
+      "roman": "anupater",
+      "reference": "অনুপাতের",
+      "neural": "অনুপতের",
+      "fallback": "অনুপতের"
+    }
+  ]
+}

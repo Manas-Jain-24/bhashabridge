@@ -9,17 +9,24 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Encoder(nn.Module):
-    def __init__(self, input_dim: int, emb_dim: int, enc_hid_dim: int, dec_hid_dim: int, dropout: float = 0.1):
+    def __init__(self, input_dim: int, emb_dim: int, enc_hid_dim: int, dec_hid_dim: int, dropout: float = 0.1, packed: bool = False):
         super().__init__()
         self.embedding = nn.Embedding(input_dim, emb_dim)
         self.rnn = nn.GRU(emb_dim, enc_hid_dim, bidirectional=True, batch_first=True)
         self.fc = nn.Linear(enc_hid_dim * 2, dec_hid_dim)
         self.dropout = nn.Dropout(dropout)
+        self.packed = packed
 
     def forward(self, src: torch.Tensor):
         # src: [batch_size, src_len]
         embedded = self.dropout(self.embedding(src))  # [batch_size, src_len, emb_dim]
-        outputs, hidden = self.rnn(embedded)          # outputs: [batch_size, src_len, enc_hid_dim * 2]
+        if self.packed:
+            lengths = src.ne(0).sum(1).cpu()
+            sequence = nn.utils.rnn.pack_padded_sequence(embedded, lengths, batch_first=True, enforce_sorted=False)
+            outputs, hidden = self.rnn(sequence)
+            outputs, _ = nn.utils.rnn.pad_packed_sequence(outputs, batch_first=True, total_length=src.shape[1])
+        else:
+            outputs, hidden = self.rnn(embedded)
         # hidden: [2, batch_size, enc_hid_dim] -> concatenate forward and backward
         hidden_cat = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
         hidden = torch.tanh(self.fc(hidden_cat))      # [batch_size, dec_hid_dim]

@@ -1,3 +1,4 @@
+from pydantic import BaseModel, ConfigDict, Field
 import os
 import json
 import logging
@@ -5,6 +6,14 @@ from typing import Optional, Dict, Any, List
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+class TutorExplanation(BaseModel):
+    model_config = ConfigDict(strict=True)
+    summary: str = Field(min_length=1, max_length=2000)
+    differences: List[str] = Field(max_length=6)
+    cultural_mnemonic: Optional[str] = Field(default=None, max_length=1000)
+    formality_note: Optional[str] = Field(default=None, max_length=1000)
+
 
 class GeminiLinguisticTutor:
     """
@@ -20,11 +29,20 @@ class GeminiLinguisticTutor:
         if self._is_valid_key(self.api_key):
             try:
                 from google import genai
-                self._client = genai.Client(api_key=self.api_key)
+                self._client = self._create_client(self.api_key)
                 logger.info("Gemini Linguistic Sensei initialized successfully.")
             except Exception as e:
                 logger.warning("Could not initialize Gemini Client (%s). Using local rule engine.", e)
                 self._client = None
+
+    @staticmethod
+    def _create_client(key):
+        from google import genai
+        from google.genai import types
+        return genai.Client(api_key=key, http_options=types.HttpOptions(
+            timeout=int(settings.GEMINI_TIMEOUT_SECONDS * 1000),
+            retry_options=types.HttpRetryOptions(attempts=1),
+        ))
 
     def _is_valid_key(self, key: Optional[str]) -> bool:
         if not key or not key.strip():
@@ -47,7 +65,7 @@ class GeminiLinguisticTutor:
             try:
                 from google import genai
                 self.api_key = env_key
-                self._client = genai.Client(api_key=env_key)
+                self._client = self._create_client(env_key)
             except Exception:
                 return False
         return self._client is not None
@@ -75,14 +93,15 @@ class GeminiLinguisticTutor:
                 for item in aligned_tokens[:6]
             )
 
-        prompt = f"""You are 'BhashaBridge Sensei', a friendly, linguistically expert language tutor specializing in Hindi and Marathi cross-lingual nuances.
+        prompt = f"""You are 'BhashaBridge Sensei', a friendly, linguistically expert language tutor specializing in Indian language learning.
 
-Task: Provide a concise, pedagogical explanation of why and how the sentence changes between Hindi and Marathi.
+Task: Provide a concise, pedagogical explanation of why and how the sentence changes between {source_language} and {target_language}.
 Source ({source_language}): "{source_text}"
 Target ({target_language}): "{target_text}"
 {aligned_summary}
 
-Key linguistic facts to consider if applicable:
+Use only contrasts relevant to this exact language pair. Never apply Hindi/Marathi facts to Bengali.
+For Hindi/Marathi only, consider these facts if applicable:
 1. Marathi preserves the Sanskrit Neuter (नपुंसकलिंग) gender (e.g. पाणी, पुस्तक, घर), whereas Hindi has only Masculine/Feminine.
 2. Dative experiencer subjects (e.g., मुझे ➔ मला).
 3. Synthetic suffixation in Marathi (e.g., कॉलेज ➔ कॉलेजला) vs Hindi analytic postpositions (कॉलेज में / कॉलेज को).
@@ -101,7 +120,7 @@ Return ONLY a valid JSON object with the following keys:
 }}
 """
 
-        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash-lite"]
+        models_to_try = [settings.GEMINI_MODEL]
         for model_name in models_to_try:
             try:
                 response = self._client.models.generate_content(
@@ -118,13 +137,7 @@ Return ONLY a valid JSON object with the following keys:
                 if text.endswith("```"):
                     text = text[:-3]
                 data = json.loads(text.strip())
-                if "summary" in data and "differences" in data:
-                    return {
-                        "summary": data["summary"],
-                        "differences": data.get("differences", []),
-                        "cultural_mnemonic": data.get("cultural_mnemonic"),
-                        "formality_note": data.get("formality_note")
-                    }
+                return TutorExplanation.model_validate(data).model_dump()
             except Exception as e:
                 logger.debug("Gemini attempt with %s failed: %s", model_name, e)
                 continue

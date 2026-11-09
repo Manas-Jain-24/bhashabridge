@@ -1,3 +1,4 @@
+from app.core.languages import rule_pair, check_source_script
 import os
 from app.core.config import settings
 from app.services.base import BaseTranslationService
@@ -22,8 +23,10 @@ translation_service = get_translation_service()
 
 
 def translate_with_memory(db, text: str, source_language: str, target_language: str, script: str = "both"):
+    check_source_script(text, source_language)
     reviewed = lookup_reviewed(db, text, source_language, target_language, script)
     if reviewed is not None:
         return reviewed
-    return translation_service.translate(text=text, source_language=source_language,
+    engine = translation_service if rule_pair(source_language, target_language) else indictrans2_adapter
+    return engine.translate(text=text, source_language=source_language,
                                          target_language=target_language, script=script)

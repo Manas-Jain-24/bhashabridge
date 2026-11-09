@@ -1,12 +1,14 @@
+from app.core.languages import InputText
+from app.core.languages import Language
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from app.schemas.analyze import VocabularyItem, GrammarPoint, ExampleItem
 
 class ExplainRequest(BaseModel):
-    source_text: str = Field(..., description="Source sentence")
-    source_language: str = Field("hindi", description="hindi or marathi")
-    target_text: str = Field(..., description="Target sentence")
-    target_language: str = Field("marathi", description="marathi or hindi")
+    source_text: InputText = Field(..., description="Source sentence")
+    source_language: Language = Field("hindi", description="Registered source language")
+    target_text: InputText = Field(..., description="Target sentence")
+    target_language: Language = Field("marathi", description="Registered target language")
 
 class ExplainResponse(BaseModel):
     summary: str

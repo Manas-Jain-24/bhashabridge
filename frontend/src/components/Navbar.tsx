@@ -18,25 +18,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         {/* Left: Brand Logo */}
         <div
           onClick={() => onChangeView('translate')}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex min-w-0 items-center gap-2 sm:gap-3 cursor-pointer group"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20 group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20 group-hover:scale-105 transition-transform">
             <Layers className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">
+              <span className="font-bold text-sm sm:text-lg whitespace-nowrap tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">
                 BhashaBridge
               </span>
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <span className="hidden lg:inline text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 Bridge Mode
               </span>
             </div>
-            <p className="text-xs text-slate-400">Hindi ⇄ Marathi without script barriers</p>
+            <p className="hidden sm:block text-xs text-slate-400">Indian languages without script barriers</p>
           </div>
         </div>
 
@@ -74,20 +74,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right: Practice, Progress */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2.5">
           {/* Mobile view switch pill */}
           <button
+            aria-label={currentView==='translate'?'Open learning hub':'Open translation bridge'}
             onClick={() => onChangeView(currentView === 'translate' ? 'learn' : 'translate')}
-            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+            className="sm:hidden flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
           >
-            {currentView === 'translate' ? '🎮 Learn' : '🔄 Translate'}
+            <span aria-hidden="true">{currentView === 'translate' ? '🎮' : '🔄'}</span><span className="hidden min-[420px]:inline">{currentView === 'translate' ? 'Learn' : 'Translate'}</span>
           </button>
 
           <button
             id="practice-btn-nav"
             aria-label="Open practice"
             onClick={onOpenPractice}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 transition-all shadow-sm"
+            className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 transition-all shadow-sm"
           >
             <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden md:inline">Practice</span>
@@ -97,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="dashboard-btn-nav"
             aria-label={`Open progress, ${reviewCount} words due for review`}
             onClick={onOpenDashboard}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-gradient-to-r from-indigo-950/40 to-slate-900/60 hover:from-indigo-900/60 hover:to-slate-800 border border-indigo-500/30 transition-all shadow-sm group"
+            className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 hover:text-white bg-gradient-to-r from-indigo-950/40 to-slate-900/60 hover:from-indigo-900/60 hover:to-slate-800 border border-indigo-500/30 transition-all shadow-sm group"
           >
             <BarChart2 className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
             <span className="hidden md:inline">Progress</span>

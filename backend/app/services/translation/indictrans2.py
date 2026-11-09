@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from app.core.languages import LANGUAGES, has_native, rule_pair, validate_language
 """
 BhashaBridge — IndicTrans2 Translation Adapter
 Adheres to Principle 3 (models must be replaceable).
@@ -15,6 +17,8 @@ from app.services.base import BaseTranslationService
 from app.services.transliteration.service import transliteration_service
 from app.services.translation.translator import modular_translator
 from app.core.config import settings
+from app.services.translation.punctuation import finish_native_sentence
+from app.services.translation.generation import generate_next_token_scores,GENERATION_SETTINGS,validate_native_output
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +31,7 @@ class IndicTrans2Adapter(BaseTranslationService):
     """
 
     LANG_TAG_MAP = {
-        "hindi": "hin_Deva",
-        "marathi": "mar_Deva"
+        **{name: spec["flores"] for name, spec in LANGUAGES.items()}
     }
 
     # Common proper noun ambiguities where dictionary translation causes errors
@@ -51,13 +54,19 @@ class IndicTrans2Adapter(BaseTranslationService):
         "मनोज", "विद्या", "राजेश", "सीमा", "सचिन", "अमृता", "प्रशांत", "स्वाती", "विक्रम", "कविता"
     ]
 
-    def __init__(self, model_checkpoint: Optional[str] = None):
+    def __init__(self, model_checkpoint: Optional[str] = None, cpu_dtype: str = 'float32', stream_weights: bool = False):
+        if cpu_dtype not in ('float32','float16','bfloat16'):
+            raise ValueError('Unsupported CPU inference dtype')
+        self.cpu_dtype = cpu_dtype
+        self.stream_weights = stream_weights
         self.model_checkpoint = model_checkpoint or settings.INDICTRANS2_MODEL_CHECKPOINT
         self.tokenizer = None
         self.model = None
         self.processor = None
         self.is_loaded = False
         self._load_lock = threading.Lock()
+        self._inference_lock = threading.Lock()
+        self._cache_lock = threading.Lock()
         self._load_failed = False
         self._load_attempted = False
         self.max_cache_size = int(os.getenv("TRANSLATION_CACHE_MAX_SIZE", "1000"))
@@ -103,12 +112,13 @@ class IndicTrans2Adapter(BaseTranslationService):
                     trust_remote_code=True
                 )
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                self.model = AutoModelForSeq2SeqLM.from_pretrained(
-                    self.model_checkpoint,
-                    trust_remote_code=True,
-                    dtype=torch.float16 if device == "cuda" else torch.float32,
-                    low_cpu_mem_usage=True
-                )
+                if device=='cpu' and self.stream_weights:
+                    from app.services.translation.low_memory import load_streamed
+                    self.model=load_streamed(self.model_checkpoint,getattr(torch,self.cpu_dtype))
+                else:
+                    self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                        self.model_checkpoint, trust_remote_code=True,
+                        dtype=torch.float16 if device == "cuda" else getattr(torch,self.cpu_dtype), low_cpu_mem_usage=True)
                 self.model.to(device)
                 self.model.eval()
                 self.processor = IndicProcessor(inference=True)
@@ -124,6 +134,36 @@ class IndicTrans2Adapter(BaseTranslationService):
                 self.is_loaded = False
                 self._load_failed = True
                 return False
+
+    def translate_native_batch(self, texts, source_language, target_language):
+        """Native-script neural inference for offline benchmarks (no memory overrides)."""
+        import torch
+        validate_language(source_language); validate_language(target_language)
+        if source_language == target_language:
+            raise ValueError("Choose distinct languages")
+        if not texts:
+            return []
+        if not self._lazy_load_model():
+            raise RuntimeError("IndicTrans2 is unavailable; benchmark fallback is forbidden")
+        shielded = [self._shield_proper_names(t) if rule_pair(source_language, target_language) else (t, {}) for t in texts]
+        with self._inference_lock:
+            prepared = self.processor.preprocess_batch([t for t, _ in shielded], src_lang=self.LANG_TAG_MAP[source_language], tgt_lang=self.LANG_TAG_MAP[target_language])
+            device = next(self.model.parameters()).device
+            inputs = self.tokenizer(prepared, padding="longest", truncation=True, return_tensors="pt", return_attention_mask=True).to(device)
+            with torch.inference_mode():
+                generated = generate_next_token_scores(self.model,**inputs,**GENERATION_SETTINGS)
+            decoded = self.tokenizer.batch_decode(generated, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+            outputs = self.processor.postprocess_batch(decoded, lang=self.LANG_TAG_MAP[target_language])
+        results = []
+        for output, (_, mapping) in zip(outputs, shielded):
+            native = self._unshield_proper_names(output.strip(), mapping)
+            if not native:
+                raise ValueError("IndicTrans2 returned an empty translation")
+            native=finish_native_sentence(validate_native_output(native))
+            results.append(native)
+        if len(results) != len(texts):
+            raise ValueError("IndicTrans2 returned an incomplete batch")
+        return results
 
     def _get_unique_anchor(self, idx: int, text: str, used_anchors: Set[str]) -> str:
         """Selects or generates a collision-free anchor name that does not exist in text."""
@@ -207,16 +247,20 @@ class IndicTrans2Adapter(BaseTranslationService):
         target_language: str = "marathi",
         script: str = "both"
     ) -> Dict[str, Any]:
+        validate_language(source_language)
+        validate_language(target_language)
         clean_text = text.strip()
         cache_key = f"{source_language}_{target_language}_{script}_{clean_text.lower()}"
-        if cache_key in self._translation_cache:
-            res = self._translation_cache[cache_key]
-            self._translation_cache.move_to_end(cache_key)
-            return res
+        with self._cache_lock:
+            if cache_key in self._translation_cache:
+                res = dict(self._translation_cache[cache_key])
+                res["source_text"] = text
+                self._translation_cache.move_to_end(cache_key)
+                return res
 
         # 1. Normalize input script (ensure Devanagari input for neural model)
-        is_devanagari = any('ऀ' <= c <= 'ॿ' for c in clean_text)
-        devanagari_input = clean_text if is_devanagari else transliteration_service.transliterate(
+        is_devanagari = has_native(clean_text, source_language)
+        devanagari_input = transliteration_service.transliterate(
             clean_text, language=source_language, direction="latin_to_devanagari"
         )
 
@@ -224,30 +268,30 @@ class IndicTrans2Adapter(BaseTranslationService):
         if self._lazy_load_model() and self.model and self.tokenizer and self.processor:
             try:
                 import torch
-                src_tag = self.LANG_TAG_MAP.get(source_language.lower(), "hin_Deva")
-                tgt_tag = self.LANG_TAG_MAP.get(target_language.lower(), "mar_Deva")
+                src_tag = self.LANG_TAG_MAP[source_language]
+                tgt_tag = self.LANG_TAG_MAP[target_language]
 
                 # Shield proper names from literal dictionary translation
-                shielded_input, shield_map = self._shield_proper_names(devanagari_input, original_raw_text=clean_text)
+                shielded_input, shield_map = (self._shield_proper_names(devanagari_input, original_raw_text=clean_text)
+                                               if rule_pair(source_language, target_language) else (devanagari_input, {}))
 
-                prepared = self.processor.preprocess_batch(
-                    [shielded_input], src_lang=src_tag, tgt_lang=tgt_tag
-                )
-                device = next(self.model.parameters()).device
-                inputs = self.tokenizer(prepared, padding="longest", truncation=True,
-                                        return_tensors="pt", return_attention_mask=True).to(device)
-
-                with torch.no_grad():
-                    generated_tokens = self.model.generate(
-                        **inputs,
-                        max_length=256,
-                        num_beams=5,
-                        use_cache=False
+                with self._inference_lock:
+                    prepared = self.processor.preprocess_batch(
+                        [shielded_input], src_lang=src_tag, tgt_lang=tgt_tag
                     )
+                    device = next(self.model.parameters()).device
+                    inputs = self.tokenizer(prepared, padding="longest", truncation=True,
+                                            return_tensors="pt", return_attention_mask=True).to(device)
 
-                decoded = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True,
-                                                      clean_up_tokenization_spaces=True)
-                processed = self.processor.postprocess_batch(decoded, lang=tgt_tag)
+                    with torch.no_grad():
+                        generated_tokens = generate_next_token_scores(self.model,
+                            **inputs,
+                            **GENERATION_SETTINGS
+                        )
+
+                    decoded = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True,
+                                                          clean_up_tokenization_spaces=True)
+                    processed = self.processor.postprocess_batch(decoded, lang=tgt_tag)
                 raw_translation = processed[0].strip() if processed else ""
                 if not raw_translation:
                     raise ValueError("IndicTrans2 returned an empty translation")
@@ -255,8 +299,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                 # Unshield entities to restore proper names in the exact target position
                 native_translation = self._unshield_proper_names(raw_translation, shield_map)
 
-                if native_translation and not native_translation.endswith(("।", ".", "!", "?", "॥")):
-                    native_translation += "।"
+                native_translation=finish_native_sentence(validate_native_output(native_translation))
 
                 roman_translation = transliteration_service.transliterate(
                     native_translation, language=target_language, direction="devanagari_to_latin"
@@ -266,7 +309,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                     "source_text": text,
                     "source_language": source_language,
                     "target_language": target_language,
-                    "translation": native_translation if script == "devanagari" else roman_translation,
+                    "translation": native_translation if script in ("native", "devanagari") else roman_translation,
                     "translation_native": native_translation,
                     "translation_roman": roman_translation,
                     "english_meaning": "",
@@ -274,12 +317,18 @@ class IndicTrans2Adapter(BaseTranslationService):
                     "engine": "indictrans2-320m-neural",
                     "fallback_used": False
                 }
-                self._translation_cache[cache_key] = result
-                if len(self._translation_cache) > self.max_cache_size:
-                    self._translation_cache.popitem(last=False)
+                with self._cache_lock:
+                    self._translation_cache[cache_key] = dict(result)
+                    if len(self._translation_cache) > self.max_cache_size:
+                        self._translation_cache.popitem(last=False)
                 return result
             except Exception as exc:
                 logger.warning("IndicTrans2 inference failed (%s), falling back to modular engine.", exc.__class__.__name__, exc_info=True)
+
+        if not rule_pair(source_language, target_language):
+            if self.is_loaded:
+                raise HTTPException(status_code=503,detail='The model could not produce a reliable translation for this sentence. Try a shorter or simpler sentence.')
+            raise HTTPException(status_code=503, detail="Neural translation is unavailable for this language pair. Install requirements-neural.txt and retry; no rule translation is available.")
 
         # 3. Fallback to our high-accuracy modular conversational translator
         fallback_res = modular_translator.translate(
@@ -292,9 +341,10 @@ class IndicTrans2Adapter(BaseTranslationService):
         fallback_res["engine"] = fallback_res.get("engine", fallback_res.get("model_source", "curated_corpus"))
         fallback_res["model_source"] = fallback_res.get("model_source", "curated_corpus")
 
-        self._translation_cache[cache_key] = fallback_res
-        if len(self._translation_cache) > self.max_cache_size:
-            self._translation_cache.popitem(last=False)
+        with self._cache_lock:
+            self._translation_cache[cache_key] = dict(fallback_res)
+            if len(self._translation_cache) > self.max_cache_size:
+                self._translation_cache.popitem(last=False)
         return fallback_res
 
 indictrans2_adapter = IndicTrans2Adapter()

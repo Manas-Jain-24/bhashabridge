@@ -62,6 +62,12 @@ def lookup_reviewed(db: Session, text: str, source_language: str, target_languag
     ).first()
     if row is None:
         return None
+    # Ordinary punctuation/case normalization must not turn one opaque URL,
+    # identifier or formatted number into another reviewed source sentence.
+    from app.services.text_entities import ENTITY_PATTERN
+    entities=lambda value:[match.group(0) for match in ENTITY_PATTERN.finditer(value)]
+    if entities(source_native)!=entities(row.source_text):
+        return None
     roman = row.target_roman or transliteration_service.transliterate(
         row.target_text, language=target_language, direction="devanagari_to_latin"
     )

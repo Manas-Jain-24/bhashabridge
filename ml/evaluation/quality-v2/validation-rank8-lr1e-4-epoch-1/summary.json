@@ -1,0 +1,37 @@
+{
+  "complete": true,
+  "split": "validation",
+  "examples_per_direction": 160,
+  "directions": [
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "marathi",
+        "examples": 160,
+        "data_sha256": "9ef300f53d0ec8ed9b302f50fa1d002f78b255d9213e5ca490b88060a0c6f060",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": "6e91fbb23f86e5b08988677d0f7ccc777d66247c114d32a160fc6e647d2ebf16",
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 23.68194218214444,
+      "chrf_plus_plus": 50.78382229281515,
+      "inference_failures": 0,
+      "elapsed_seconds": 22.43663939999533
+    }
+  ],
+  "scope": "Frozen BPCC local-adaptation holdout or unused NTREX news documents; upstream pretraining exposure is not excluded.",
+  "upstream_training_exposure": "unknown"
+}

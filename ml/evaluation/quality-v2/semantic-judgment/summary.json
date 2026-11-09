@@ -1,0 +1,19 @@
+{
+  "complete": true,
+  "examples": 310,
+  "preference_counts": {
+    "tie": 157,
+    "baseline": 64,
+    "candidate": 83,
+    "uncertain": 6
+  },
+  "major_errors_baseline": 61,
+  "major_errors_candidate": 32,
+  "human_approved": false,
+  "used_for_training_or_selection": false,
+  "limitations": [
+    "One automated judge, not bilingual-human review.",
+    "Order randomized but remaining LLM evaluator bias is possible.",
+    "Selected limited-domain evaluation is not a general accuracy estimate."
+  ]
+}

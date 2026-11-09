@@ -17,7 +17,8 @@ from prepare_translation_quality import OUT,audit,read
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--split',choices=['validation','test'],required=True)
+    parser.add_argument('--split',choices=['validation','test','validation_news','test_news'],required=True)
+    parser.add_argument('--data-dir',type=Path,default=OUT)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--adapter',type=Path)
     parser.add_argument('--legacy-processor',action='store_true')
@@ -33,8 +34,13 @@ def main():
     from app.services.translation.indic_processor import IndicScriptProcessor
     import app.services.translation.indictrans2 as module
     if not torch.cuda.is_available(): raise RuntimeError('CUDA required')
-    torch.set_num_threads(4); audit()
-    translator=IndicTrans2Adapter()
+    torch.set_num_threads(4)
+    if args.data_dir.resolve()==OUT.resolve(): audit()
+    else:
+        from prepare_translation_quality_v2 import OUT as V2_OUT,audit as audit_v2
+        if args.data_dir.resolve()!=V2_OUT.resolve(): raise ValueError('Unsupported/unfrozen evaluation directory')
+        audit_v2()
+    translator=IndicTrans2Adapter(allow_adapters=False)
     if not translator._lazy_load_model(): raise RuntimeError('Model unavailable')
     if args.legacy_processor:
         # Archived behavior of commit 8a93314, for validation comparisons only.
@@ -64,15 +70,17 @@ def main():
         adapter_hash=hashlib.sha256((args.adapter/'adapter_model.safetensors').read_bytes()).hexdigest()
         translator.model=PeftModel.from_pretrained(translator.model,args.adapter,is_trainable=False)
         translator.model.eval()
-    rows=read(OUT/f'{args.split}.jsonl')
+    rows=read(args.data_dir/f'{args.split}.jsonl')
+    def sentences(row):
+        return row.get('sentences') or {row['source_language']:row['source_text'],row['target_language']:row['target_text']}
     args.output.mkdir(parents=True,exist_ok=True)
-    pairs=[('bengali','marathi')] if args.pair_only else itertools.permutations(('hindi','marathi','bengali'),2)
+    pairs=[('bengali','marathi')] if args.pair_only or 'sentences' not in rows[0] else itertools.permutations(('hindi','marathi','bengali'),2)
     summary=[]
     for source,target in pairs:
         report_path=args.output/f'{source}-{target}.json'
         adapted=bool(args.adapter and (source,target)==('bengali','marathi'))
         identity={'split':args.split,'source':source,'target':target,'examples':len(rows),
-                  'data_sha256':hashlib.sha256((OUT/f'{args.split}.jsonl').read_bytes()).hexdigest(),
+                  'data_sha256':hashlib.sha256((args.data_dir/f'{args.split}.jsonl').read_bytes()).hexdigest(),
                   'model':translator.model_checkpoint,'model_revision':getattr(translator.model.config,'_commit_hash',None),
                   'processor_version':translator.processor.VERSION,'adapter_sha256':adapter_hash if adapted else None,
                   'precision':'float16','batch_size':args.batch_size,'generation':module.GENERATION_SETTINGS,
@@ -81,7 +89,7 @@ def main():
         if previous and previous['identity']!=identity: raise ValueError('Incompatible saved evaluation')
         predictions=previous.get('predictions',[])
         if len(predictions)>len(rows) or any(
-            p['id']!=row['id'] or p['source']!=row['sentences'][source] or p['reference']!=row['sentences'][target]
+            p['id']!=row['id'] or p['source']!=sentences(row)[source] or p['reference']!=sentences(row)[target]
             for p,row in zip(predictions,rows)):
             raise ValueError('Saved predictions do not match the frozen corpus')
         if previous.get('complete'):
@@ -94,14 +102,14 @@ def main():
             batch=rows[index:index+args.batch_size]; errors={}
             context=translator.model.disable_adapter() if args.adapter and not adapted else nullcontext()
             with context:
-                try: texts=translator.translate_native_batch([r['sentences'][source] for r in batch],source,target)
+                try: texts=translator.translate_native_batch([sentences(r)[source] for r in batch],source,target)
                 except Exception as batch_error:
                     print(f'{source}->{target} batch retry: {type(batch_error).__name__}',flush=True)
                     texts=[]
                     for i,row in enumerate(batch):
-                        try: texts.append(translator.translate_native_batch([row['sentences'][source]],source,target)[0])
+                        try: texts.append(translator.translate_native_batch([sentences(row)[source]],source,target)[0])
                         except Exception as exc: texts.append(''); errors[i]=type(exc).__name__
-            predictions.extend({'id':row['id'],'source':row['sentences'][source],'reference':row['sentences'][target],
+            predictions.extend({'id':row['id'],'source':sentences(row)[source],'reference':sentences(row)[target],
                                 'prediction':text,**({'inference_error':errors[i]} if i in errors else {})}
                                for i,(row,text) in enumerate(zip(batch,texts)))
             report={'identity':identity,'complete':False,'predictions':predictions,
@@ -119,7 +127,8 @@ def main():
         summary.append({k:report[k] for k in ('identity','bleu','chrf_plus_plus','inference_failures','elapsed_seconds')})
         print(json.dumps(summary[-1]),flush=True)
     result={'complete':True,'split':args.split,'examples_per_direction':len(rows),'directions':summary,
-            'scope':'Frozen document-disjoint NTREX subset; not all NTREX or general accuracy.',
+            'scope':('Frozen document-disjoint NTREX subset; not all NTREX or general accuracy.' if args.data_dir.resolve()==OUT.resolve()
+                     else 'Frozen BPCC local-adaptation holdout or unused NTREX news documents; upstream pretraining exposure is not excluded.'),
             'upstream_training_exposure':'unknown'}
     (args.output/'summary.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
 

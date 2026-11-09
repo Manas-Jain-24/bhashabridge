@@ -11,6 +11,7 @@ import os
 import re
 import logging
 import threading
+from contextlib import nullcontext
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Tuple, Set
 from app.services.base import BaseTranslationService
@@ -54,11 +55,13 @@ class IndicTrans2Adapter(BaseTranslationService):
         "मनोज", "विद्या", "राजेश", "सीमा", "सचिन", "अमृता", "प्रशांत", "स्वाती", "विक्रम", "कविता"
     ]
 
-    def __init__(self, model_checkpoint: Optional[str] = None, cpu_dtype: str = 'float32', stream_weights: bool = False):
+    def __init__(self, model_checkpoint: Optional[str] = None, cpu_dtype: str = 'float32', stream_weights: bool = False, allow_adapters: bool = True):
         if cpu_dtype not in ('float32','float16','bfloat16'):
             raise ValueError('Unsupported CPU inference dtype')
         self.cpu_dtype = cpu_dtype
         self.stream_weights = stream_weights
+        self.allow_adapters = allow_adapters
+        self.adapter_sha256 = None
         self.model_checkpoint = model_checkpoint or settings.INDICTRANS2_MODEL_CHECKPOINT
         self.tokenizer = None
         self.model = None
@@ -70,7 +73,7 @@ class IndicTrans2Adapter(BaseTranslationService):
         self._load_failed = False
         self._load_attempted = False
         self.max_cache_size = int(os.getenv("TRANSLATION_CACHE_MAX_SIZE", "1000"))
-        self._translation_cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._translation_cache: OrderedDict[Tuple[str,str,str,str], Dict[str, Any]] = OrderedDict()
 
     def _lazy_load_model(self, force_retry: bool = False) -> bool:
         """
@@ -121,6 +124,22 @@ class IndicTrans2Adapter(BaseTranslationService):
                         dtype=torch.float16 if device == "cuda" else getattr(torch,self.cpu_dtype), low_cpu_mem_usage=True)
                 self.model.to(device)
                 self.model.eval()
+                decision=settings.INDICTRANS2_ADAPTER_DECISION if self.allow_adapters else None
+                if decision:
+                    adapter_load_started=False
+                    try:
+                        from app.services.translation.adapter_artifact import validated_artifact
+                        from peft import PeftModel
+                        path,digest=validated_artifact(decision,self.model_checkpoint,getattr(self.model.config,'_commit_hash',None))
+                        adapter_load_started=True
+                        self.model=PeftModel.from_pretrained(self.model,path,is_trainable=False)
+                        self.model.eval(); self.adapter_sha256=digest
+                        logger.info('Validated Bengali-Marathi adapter loaded (%s)',digest[:12])
+                    except Exception as exc:
+                        # PEFT can modify modules before an exception. Do not
+                        # advertise a partially modified model as clean base weights.
+                        if adapter_load_started: raise
+                        logger.warning('Optional adapter unavailable (%s); using base weights',type(exc).__name__)
                 self.processor = IndicProcessor(inference=True)
                 self.is_loaded = True
                 self._load_failed = False
@@ -135,6 +154,11 @@ class IndicTrans2Adapter(BaseTranslationService):
                 self._load_failed = True
                 return False
 
+    def _adapter_context(self, source_language, target_language):
+        if self.adapter_sha256 and (source_language,target_language)!=('bengali','marathi'):
+            return self.model.disable_adapter()
+        return nullcontext()
+
     def translate_native_batch(self, texts, source_language, target_language):
         """Native-script neural inference for offline benchmarks (no memory overrides)."""
         import torch
@@ -146,7 +170,7 @@ class IndicTrans2Adapter(BaseTranslationService):
         if not self._lazy_load_model():
             raise RuntimeError("IndicTrans2 is unavailable; benchmark fallback is forbidden")
         shielded = [self._shield_proper_names(t) if rule_pair(source_language, target_language) else (t, {}) for t in texts]
-        with self._inference_lock:
+        with self._inference_lock, self._adapter_context(source_language,target_language):
             prepared = self.processor.preprocess_batch([t for t, _ in shielded], src_lang=self.LANG_TAG_MAP[source_language], tgt_lang=self.LANG_TAG_MAP[target_language])
             device = next(self.model.parameters()).device
             inputs = self.tokenizer(prepared, padding="longest", truncation=True, return_tensors="pt", return_attention_mask=True).to(device)
@@ -250,7 +274,7 @@ class IndicTrans2Adapter(BaseTranslationService):
         validate_language(source_language)
         validate_language(target_language)
         clean_text = text.strip()
-        cache_key = f"{source_language}_{target_language}_{script}_{clean_text.lower()}"
+        cache_key = (source_language,target_language,script,clean_text)
         with self._cache_lock:
             if cache_key in self._translation_cache:
                 res = dict(self._translation_cache[cache_key])
@@ -275,7 +299,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                 shielded_input, shield_map = (self._shield_proper_names(devanagari_input, original_raw_text=clean_text)
                                                if rule_pair(source_language, target_language) else (devanagari_input, {}))
 
-                with self._inference_lock:
+                with self._inference_lock, self._adapter_context(source_language,target_language):
                     prepared = self.processor.preprocess_batch(
                         [shielded_input], src_lang=src_tag, tgt_lang=tgt_tag
                     )
@@ -313,8 +337,8 @@ class IndicTrans2Adapter(BaseTranslationService):
                     "translation_native": native_translation,
                     "translation_roman": roman_translation,
                     "english_meaning": "",
-                    "model_source": "indictrans2-320m-neural",
-                    "engine": "indictrans2-320m-neural",
+                    "model_source": "indictrans2-320m-neural+lora" if self.adapter_sha256 and (source_language,target_language)==('bengali','marathi') else "indictrans2-320m-neural",
+                    "engine": "indictrans2-320m-neural+lora" if self.adapter_sha256 and (source_language,target_language)==('bengali','marathi') else "indictrans2-320m-neural",
                     "fallback_used": False
                 }
                 with self._cache_lock:

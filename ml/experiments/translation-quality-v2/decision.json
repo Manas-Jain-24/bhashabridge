@@ -1,0 +1,169 @@
+{
+  "complete": true,
+  "selection": {
+    "protocol": {
+      "profiles": [
+        {
+          "name": "rank8-lr5e-5",
+          "rank": 8,
+          "lr": 5e-05,
+          "epochs": 2
+        },
+        {
+          "name": "rank8-lr1e-4",
+          "rank": 8,
+          "lr": 0.0001,
+          "epochs": 1
+        },
+        {
+          "name": "rank16-lr5e-5",
+          "rank": 16,
+          "lr": 5e-05,
+          "epochs": 1
+        }
+      ],
+      "selection": "highest validation-domain chrF++, with validation-news non-regression",
+      "validation_gate": {
+        "domain_chrf_gain": 0.5,
+        "bleu_loss_allowed": 0,
+        "news_chrf_loss_allowed": 0.5,
+        "extra_failures_allowed": 0
+      },
+      "test_gate": {
+        "domain_chrf_gain": 0.5,
+        "bleu_loss_allowed": 0,
+        "news_chrf_loss_allowed": 0.5,
+        "extra_failures_allowed": 0
+      },
+      "test_used_for_selection": false,
+      "raw_correction_drafts_in_training": false,
+      "semantic_review": "Provisional AI review is diagnostic, not native-human certification.",
+      "budget": "Four total training epochs: equal one-epoch ablations; a second epoch only for the conservative reference profile."
+    },
+    "baseline_domain": {
+      "bleu": 24.3161781868114,
+      "chrf_plus_plus": 51.21144122017461,
+      "inference_failures": 0
+    },
+    "baseline_news": {
+      "bleu": 5.598842128895201,
+      "chrf_plus_plus": 33.08479121292907,
+      "inference_failures": 2
+    },
+    "candidates": [
+      {
+        "label": "rank8-lr5e-5-epoch-1",
+        "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr5e-5/epoch-1",
+        "domain": {
+          "bleu": 23.664417408999054,
+          "chrf_plus_plus": 50.56132372514798,
+          "inference_failures": 0
+        },
+        "news": {
+          "bleu": 6.4802271038592725,
+          "chrf_plus_plus": 34.09655349927109,
+          "inference_failures": 2
+        },
+        "gate_passed": false
+      },
+      {
+        "label": "rank8-lr5e-5-epoch-2",
+        "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr5e-5/epoch-2",
+        "domain": {
+          "bleu": 23.770245443575448,
+          "chrf_plus_plus": 50.60041917125544,
+          "inference_failures": 0
+        },
+        "news": {
+          "bleu": 5.643736186813422,
+          "chrf_plus_plus": 32.96204636282311,
+          "inference_failures": 3
+        },
+        "gate_passed": false
+      },
+      {
+        "label": "rank8-lr1e-4-epoch-1",
+        "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr1e-4/epoch-1",
+        "domain": {
+          "bleu": 23.68194218214444,
+          "chrf_plus_plus": 50.78382229281515,
+          "inference_failures": 0
+        },
+        "news": {
+          "bleu": 5.961587903519186,
+          "chrf_plus_plus": 32.88007652796184,
+          "inference_failures": 3
+        },
+        "gate_passed": false
+      },
+      {
+        "label": "rank16-lr5e-5-epoch-1",
+        "checkpoint": "ml/experiments/translation-quality-v2/rank16-lr5e-5/epoch-1",
+        "domain": {
+          "bleu": 23.684128204922644,
+          "chrf_plus_plus": 50.77160704273604,
+          "inference_failures": 0
+        },
+        "news": {
+          "bleu": 5.932866302456712,
+          "chrf_plus_plus": 32.70175540233725,
+          "inference_failures": 3
+        },
+        "gate_passed": false
+      }
+    ],
+    "selected": {
+      "label": "rank8-lr1e-4-epoch-1",
+      "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr1e-4/epoch-1",
+      "domain": {
+        "bleu": 23.68194218214444,
+        "chrf_plus_plus": 50.78382229281515,
+        "inference_failures": 0
+      },
+      "news": {
+        "bleu": 5.961587903519186,
+        "chrf_plus_plus": 32.88007652796184,
+        "inference_failures": 3
+      },
+      "gate_passed": false
+    },
+    "validation_gate_passed": false,
+    "adapter_sha256": "6e91fbb23f86e5b08988677d0f7ccc777d66247c114d32a160fc6e647d2ebf16",
+    "data_manifest_sha256": "63617706d83b949566716c737b5778bbd07ba6a449a6d0d817532afcedd6915c"
+  },
+  "test_baseline": {
+    "domain": {
+      "bleu": 24.263624536026366,
+      "chrf_plus_plus": 53.095883864254155,
+      "inference_failures": 0
+    },
+    "news": {
+      "bleu": 10.816105664806681,
+      "chrf_plus_plus": 41.46758468901466,
+      "inference_failures": 2
+    }
+  },
+  "test_candidate": {
+    "domain": {
+      "bleu": 23.722088350521393,
+      "chrf_plus_plus": 52.455782653591356,
+      "inference_failures": 0
+    },
+    "news": {
+      "bleu": 12.072474229914173,
+      "chrf_plus_plus": 41.28777908228915,
+      "inference_failures": 7
+    }
+  },
+  "promotion_recommended": false,
+  "scope": [
+    "bengali",
+    "marathi"
+  ],
+  "human_approved_direct_pairs": 0,
+  "limitations": [
+    "BPCC may be present in base-model pretraining.",
+    "Fresh NTREX means unused in local adaptation; upstream exposure unknown.",
+    "No broad accuracy percentage or native-human certification is established."
+  ]
+}

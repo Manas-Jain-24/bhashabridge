@@ -56,7 +56,7 @@ Hashed corpus files and model vocabularies have explicit `.gitattributes` rules 
 
 ## Verification on 9 November 2026
 
-- Final complete backend suite after translation-quality and API entity fixes: **200 passed**; one existing Starlette/httpx deprecation warning remains.
+- Final complete backend suite after translation-quality and API entity fixes: **219 passed**; one existing Starlette/httpx deprecation warning remains.
 - Frontend TypeScript check and production build passed.
 - Both corpus leakage audits passed. All seven expanded corpus hashes and both inference artifact hashes were verified against the staged Git bytes, including cross-platform newline handling.
 - Isolated browser checks displayed Bengali lessons and a server-created checkpoint, cleared a round when changing difficulty, and reported no JavaScript errors. A navigation overflow discovered during testing was fixed; document width equals viewport width at both 320px and 390px.
@@ -68,3 +68,7 @@ Hashed corpus files and model vocabularies have explicit `.gitattributes` rules 
 ## Translation quality follow-up
 
 The [quality experiment](TRANSLATION_QUALITY_V1.md) adds protected-entity handling, corrupted-output guards, a 263-example audit queue, 94 labelled correction drafts, document-separated NTREX validation/test data, and a completed two-epoch Bengali→Marathi LoRA run. The candidate missed its predefined validation threshold and remains experimental; production keeps base weights with the code fixes. Fresh test scores and all failed cases are recorded separately from the older full FLORES benchmark.
+
+## Larger-corpus accuracy work
+
+The [v2 experiment](TRANSLATION_QUALITY_V2.md) freezes 6,997 provenance-tracked training pairs, compares four checkpoints, and reserves separate BPCC and unused-document NTREX tests. All four candidates failed validation gates; the base model stays active. The 263-example review and 310-case blind comparison are AI-provisional, with zero human approvals. A separate CSV workflow supports explicit human review. URL case collisions in result caching and normalized reviewed-memory lookup were fixed and regression-tested.

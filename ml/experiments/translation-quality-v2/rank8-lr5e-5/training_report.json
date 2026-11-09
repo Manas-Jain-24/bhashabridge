@@ -1,0 +1,50 @@
+{
+  "complete": true,
+  "configuration": {
+    "seed": 42,
+    "rank": 8,
+    "alpha": 16,
+    "learning_rate": 5e-05,
+    "epochs": 2,
+    "batch_size": 4,
+    "accumulation": 4,
+    "effective_batch_size": 16,
+    "max_length": 128,
+    "target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "dropout": 0.05,
+    "training_examples": 6997,
+    "excluded_long_examples": [],
+    "trainable_parameters": 884736,
+    "base_model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+    "base_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+    "processor_version": "windows-entities-v2",
+    "torch_version": "2.14.1+cu130",
+    "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "training_data_sha256": "650575988daa0f2f9f6b597ae540af4ed95bbd06906c94750fe716ee247db286",
+    "drafts_used": false,
+    "test_used_for_gradients": false,
+    "alignment": "Upstream human English translations joined by exact shared source; no direct local human approval"
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "mean_training_token_loss": 2.037688623997313,
+      "optimizer_steps": 438,
+      "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr5e-5/epoch-1",
+      "elapsed_seconds": 474.7644572999998
+    },
+    {
+      "epoch": 2,
+      "mean_training_token_loss": 1.9084222492200638,
+      "optimizer_steps": 438,
+      "checkpoint": "ml/experiments/translation-quality-v2/rank8-lr5e-5/epoch-2",
+      "elapsed_seconds": 949.9949643
+    }
+  ],
+  "elapsed_seconds": 949.9950062999997,
+  "peak_gpu_memory_bytes": 1406519808,
+  "status": "awaiting_validation_selection"
+}

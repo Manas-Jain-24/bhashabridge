@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "reviewed_examples": 263,
+  "source_queue_sha256": "9dd08e3c34058290f13ae13b9e3600acdaf65df20febb72d2d5437aca8c18acf",
+  "verdicts": {
+    "likely_error": 134,
+    "acceptable_variant": 129
+  },
+  "categories": {
+    "names": 5,
+    "placeholder": 66,
+    "meaning": 104,
+    "wording": 135,
+    "numbers": 19,
+    "omission": 31,
+    "hallucination": 35,
+    "person_gender": 1
+  },
+  "human_approved_examples": 0,
+  "training_examples_exported": 0,
+  "limitations": [
+    "AI judgments are provisional, not ground truth or human review.",
+    "This selected error queue is not representative of overall error rates.",
+    "Benchmark texts and references must never be exported to training."
+  ]
+}

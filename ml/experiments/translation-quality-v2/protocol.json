@@ -1,0 +1,39 @@
+{
+  "profiles": [
+    {
+      "name": "rank8-lr5e-5",
+      "rank": 8,
+      "lr": 5e-05,
+      "epochs": 2
+    },
+    {
+      "name": "rank8-lr1e-4",
+      "rank": 8,
+      "lr": 0.0001,
+      "epochs": 1
+    },
+    {
+      "name": "rank16-lr5e-5",
+      "rank": 16,
+      "lr": 5e-05,
+      "epochs": 1
+    }
+  ],
+  "selection": "highest validation-domain chrF++, with validation-news non-regression",
+  "validation_gate": {
+    "domain_chrf_gain": 0.5,
+    "bleu_loss_allowed": 0,
+    "news_chrf_loss_allowed": 0.5,
+    "extra_failures_allowed": 0
+  },
+  "test_gate": {
+    "domain_chrf_gain": 0.5,
+    "bleu_loss_allowed": 0,
+    "news_chrf_loss_allowed": 0.5,
+    "extra_failures_allowed": 0
+  },
+  "test_used_for_selection": false,
+  "raw_correction_drafts_in_training": false,
+  "semantic_review": "Provisional AI review is diagnostic, not native-human certification.",
+  "budget": "Four total training epochs: equal one-epoch ablations; a second epoch only for the conservative reference profile."
+}

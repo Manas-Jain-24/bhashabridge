@@ -48,7 +48,7 @@ def main():
     logging.info('Auditing frozen expanded data')
     audit()
     logging.info('Loading neural checkpoint')
-    translator=IndicTrans2Adapter(cpu_dtype=args.precision,stream_weights=args.stream_weights)
+    translator=IndicTrans2Adapter(cpu_dtype=args.precision,stream_weights=args.stream_weights,allow_adapters=False)
     if not translator._lazy_load_model(): raise RuntimeError('Neural model unavailable; fallback scores will not be published')
     device = next(translator.model.parameters()).device
     if args.require_device and device.type != args.require_device:

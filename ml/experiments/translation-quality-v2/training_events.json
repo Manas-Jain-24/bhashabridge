@@ -1,0 +1,12 @@
+{
+  "events": [
+    {
+      "profile": "rank8-lr5e-5",
+      "event": "restart_after_reporting_path_error",
+      "checkpoint_saved_before_failure": "epoch-1",
+      "cause": "A relative CLI output path was passed to Path.relative_to with an absolute project root.",
+      "discarded_run_used_for_validation_or_test": false,
+      "recovery": "Preserved the incomplete run locally; fixed and tested output normalization; restarted from the unchanged base model and frozen data."
+    }
+  ]
+}

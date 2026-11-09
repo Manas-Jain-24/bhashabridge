@@ -11,6 +11,7 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'backend'))
 from prepare_translation_quality import OUT, audit, keys, read
+from translation_training_artifacts import experiment_directory,save_epoch
 from app.services.translation.corpus import normalize_source
 
 
@@ -22,6 +23,7 @@ def main():
     parser.add_argument('--learning-rate',type=float,default=0.0001)
     args=parser.parse_args()
     if args.epochs<1 or args.max_length<16: parser.error('Invalid epochs/length')
+    args.output=experiment_directory(args.output,ROOT)
     os.environ['HF_HUB_OFFLINE']='1'; os.environ['TRANSFORMERS_OFFLINE']='1'
     import torch
     from peft import LoraConfig, TaskType, get_peft_model
@@ -41,7 +43,7 @@ def main():
                 raise ValueError('Training/held-out overlap: '+row['id'])
     args.output.mkdir(parents=True,exist_ok=True)
     if (args.output/'training_report.json').exists(): raise ValueError('Experiment already finished; choose a new directory')
-    adapter=IndicTrans2Adapter()
+    adapter=IndicTrans2Adapter(allow_adapters=False)
     if not adapter._lazy_load_model(): raise RuntimeError('Base model unavailable')
     tokenizer=adapter.tokenizer
     processor=IndicScriptProcessor(inference=False)
@@ -99,10 +101,9 @@ def main():
                 scaler.step(optimizer); scaler.update(); optimizer.zero_grad(set_to_none=True); steps+=1
             if (index+1)%100==0:
                 print(f'epoch {epoch+1}: {index+1}/{len(examples)} loss={loss_total/(index+1):.4f} elapsed={time.monotonic()-start:.1f}s',flush=True)
-        checkpoint=args.output/f'epoch-{epoch+1}'
-        model.save_pretrained(checkpoint,safe_serialization=True)
+        checkpoint=save_epoch(model,args.output,epoch+1,ROOT)
         history.append({'epoch':epoch+1,'mean_training_loss':loss_total/len(examples),'optimizer_steps':steps,
-                        'checkpoint':str(checkpoint.relative_to(ROOT)),'elapsed_seconds':time.monotonic()-start})
+                        'checkpoint':checkpoint,'elapsed_seconds':time.monotonic()-start})
         print(json.dumps(history[-1]),flush=True)
     report={'complete':True,'configuration':config,'history':history,'elapsed_seconds':time.monotonic()-start,
             'peak_gpu_memory_bytes':torch.cuda.max_memory_allocated(),

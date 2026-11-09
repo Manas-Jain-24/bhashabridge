@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "bpcc_revision": "5bde309374f21c39e7c3d505f28ae11f58f2a220",
+  "ntrex_revision": "468c6b69c7f6a75d31d4743d9daba2af566cc18d",
+  "counts": {
+    "train": 6997,
+    "validation": 160,
+    "test": 160,
+    "validation_news": 74,
+    "test_news": 150
+  },
+  "training_by_subset": {
+    "daily": 2000,
+    "wiki": 4000,
+    "general_replay": 997
+  },
+  "import_statistics": {
+    "daily": {
+      "joined": 2694,
+      "rejected_quality": 0,
+      "ambiguous_bengali": 0,
+      "ambiguous_marathi": 0,
+      "rejected_schema_rows": 0
+    },
+    "wiki": {
+      "joined": 39743,
+      "rejected_quality": 0,
+      "ambiguous_bengali": 3623,
+      "ambiguous_marathi": 1051,
+      "rejected_schema_rows": 0
+    }
+  },
+  "excluded": {
+    "heldout_alias": 3
+  },
+  "sha256": {
+    "test.jsonl": "34ead325a82aa36f41c6fd1d40421e6146da864c84974216285d7cc4ef99867d",
+    "test_news.jsonl": "e4c97c33098e1a91b419ed3bf46a4354f8e7d6fc4867f5dffef011f1cafc9513",
+    "train.jsonl": "650575988daa0f2f9f6b597ae540af4ed95bbd06906c94750fe716ee247db286",
+    "validation.jsonl": "9ef300f53d0ec8ed9b302f50fa1d002f78b255d9213e5ca490b88060a0c6f060",
+    "validation_news.jsonl": "1792a620bb170a9268a26cb3e9b9949302d3bc0a52f4656c0b28b17ea1de0502"
+  },
+  "raw_sha256": {
+    "daily-ben_Beng.tsv": "77e24b61227993be50fb87e73657d6d99facceb95754977b47ae42a693bcd323",
+    "daily-mar_Deva.tsv": "d7904e58d218717437c23a30cbd1472fd3693b31de8be7144a9fdd53e29473be",
+    "wiki-ben_Beng.tsv": "7a707aa8055dfd7cf8151c03ca4d13c55043135f8ae8eab825ef813f394ad3e2",
+    "wiki-mar_Deva.tsv": "9f04c81ba1d6263ff735b8268b397916f9d82371da8a617c89e83c227913d4d5"
+  },
+  "provenance": {
+    "BPCC": "https://huggingface.co/datasets/ai4bharat/BPCC",
+    "NTREX": "https://github.com/MicrosoftTranslator/NTREX"
+  },
+  "licenses": {
+    "BPCC-H-Daily and BPCC-H-Wiki": "CC-BY-4.0",
+    "NTREX and FLORES-200": "CC-BY-SA-4.0"
+  },
+  "limitations": [
+    "English-pivot human translations are not direct Bengali\u2013Marathi human review.",
+    "BPCC was used to pretrain IndicTrans2; BPCC holdouts measure local adaptation, not unseen pretraining data.",
+    "New NTREX documents were excluded from all local adaptation; upstream exposure is unknown.",
+    "94 unreviewed local drafts are excluded from v2 training."
+  ]
+}

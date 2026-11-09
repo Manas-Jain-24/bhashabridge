@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     TRANSLATION_ENGINE: Literal["indictrans2", "modular", "m2m100"] = "indictrans2"
     ALLOW_SQLITE_FALLBACK: bool = False
     INDICTRANS2_MODEL_CHECKPOINT: str = "ai4bharat/indictrans2-indic-indic-dist-320M"
+    INDICTRANS2_ADAPTER_DECISION: Optional[str] = None
     HF_TOKEN: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-flash-lite-latest"

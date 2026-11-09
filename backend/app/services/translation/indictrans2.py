@@ -155,11 +155,11 @@ class IndicTrans2Adapter(BaseTranslationService):
             decoded = self.tokenizer.batch_decode(generated, skip_special_tokens=True, clean_up_tokenization_spaces=True)
             outputs = self.processor.postprocess_batch(decoded, lang=self.LANG_TAG_MAP[target_language])
         results = []
-        for output, (_, mapping) in zip(outputs, shielded):
+        for output, (_, mapping), original in zip(outputs, shielded, texts):
             native = self._unshield_proper_names(output.strip(), mapping)
             if not native:
                 raise ValueError("IndicTrans2 returned an empty translation")
-            native=finish_native_sentence(validate_native_output(native))
+            native=finish_native_sentence(validate_native_output(native, original))
             results.append(native)
         if len(results) != len(texts):
             raise ValueError("IndicTrans2 returned an incomplete batch")
@@ -299,7 +299,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                 # Unshield entities to restore proper names in the exact target position
                 native_translation = self._unshield_proper_names(raw_translation, shield_map)
 
-                native_translation=finish_native_sentence(validate_native_output(native_translation))
+                native_translation=finish_native_sentence(validate_native_output(native_translation,clean_text))
 
                 roman_translation = transliteration_service.transliterate(
                     native_translation, language=target_language, direction="devanagari_to_latin"

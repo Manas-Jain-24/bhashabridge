@@ -1,6 +1,9 @@
 # These files have published byte-level checksums. Preserve their original bytes
 # across Windows/Linux checkouts instead of applying automatic newline conversion.
 data/processed/expanded/** -text
+data/processed/translation-quality-v1/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+data/curated/translation_corrections_v1.jsonl -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+*.safetensors -text
 ml/experiments/bengali-v1/vocab.json -text
 ml/models/bengali-v1/vocab.json -text
 *.pt -text

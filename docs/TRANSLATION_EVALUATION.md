@@ -1,5 +1,7 @@
 # Native-script translation evaluation
 
+The full FLORES report below records the previous processor. The subsequent entity-handling fixes and trained adapter have separate [fresh NTREX results](TRANSLATION_QUALITY_V1.md); their scores are not combined with this historical benchmark.
+
 ## Full GPU benchmark on 9 November 2026
 
 All **6,072 translation cases** were evaluated: 1,012 frozen FLORES-200 devtest sentences in each of six directions, with **1 inference failure**. The final summary is marked `complete=true`, `diagnostic_subset=false`. Reports, predictions and low-scoring examples are in [the full GPU results](../ml/evaluation/expanded-gpu/summary.json).

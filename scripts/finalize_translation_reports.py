@@ -24,7 +24,8 @@ def finalize(directory, corpus_path=ROOT/'data/processed/expanded/translation/te
     actual={(r['identity']['source_language'],r['identity']['target_language']) for r in reports}
     if actual!=expected: raise ValueError('Missing or duplicated language direction')
     common_keys=('model','model_revision','test_sha256','precision','processor','generation')
-    configurations={json.dumps({k:r['identity'][k] for k in common_keys},sort_keys=True) for r in reports}
+    configurations={json.dumps({**{k:r['identity'][k] for k in common_keys},
+                                'processor_version':r['identity'].get('processor_version','legacy')},sort_keys=True) for r in reports}
     if len(configurations)!=1: raise ValueError('Cannot combine different model, data or decoding configurations')
     counts={r['identity']['requested_examples'] for r in reports}
     if len(counts)!=1: raise ValueError('Cannot combine different split sizes')

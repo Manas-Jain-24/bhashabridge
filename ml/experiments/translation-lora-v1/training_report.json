@@ -1,0 +1,57 @@
+{
+  "complete": true,
+  "configuration": {
+    "seed": 42,
+    "epochs": 2,
+    "max_length": 128,
+    "learning_rate": 0.0001,
+    "micro_batch_size": 1,
+    "gradient_accumulation": 8,
+    "rank": 8,
+    "alpha": 16,
+    "dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "training_examples": 1091,
+    "excluded_long_examples": [],
+    "base_model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+    "base_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+    "processor_version": "windows-entities-v2",
+    "trainable_parameters": 884736,
+    "torch_version": "2.14.1+cu130",
+    "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "inputs_sha256": {
+      "data\\processed\\translation-quality-v1\\train.jsonl": "69d4d93d9941d8d78fd269fb4ba020220cc44dec2720447ce0b2b8a7e1789dc3",
+      "data\\curated\\translation_corrections_v1.jsonl": "09df0c73593bdf3c6d8db2051eeffa20ea31cb79bfb4e58f55fc88ca7364cd4b",
+      "data\\processed\\translation-quality-v1\\validation.jsonl": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+      "data\\processed\\translation-quality-v1\\test.jsonl": "62df1912316d7850e0cee49beff3c237bf7e553861fb1b010674562faa4ce33e"
+    },
+    "held_out_data_used_for_gradients": false,
+    "limitations": [
+      "Small experimental adaptation; not a new general-purpose model.",
+      "94 locally authored correction drafts are not native-speaker reviewed.",
+      "Long examples are excluded, never silently truncated."
+    ]
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "mean_training_loss": 2.5326141544594662,
+      "optimizer_steps": 137,
+      "checkpoint": "ml\\experiments\\translation-lora-v1\\epoch-1",
+      "elapsed_seconds": 258.91020370000115
+    },
+    {
+      "epoch": 2,
+      "mean_training_loss": 2.4073238183840715,
+      "optimizer_steps": 137,
+      "checkpoint": "ml\\experiments\\translation-lora-v1\\epoch-2",
+      "elapsed_seconds": 511.54892200000177
+    }
+  ],
+  "elapsed_seconds": 511.54895659999966,
+  "peak_gpu_memory_bytes": 861833728,
+  "status": "experimental_not_selected; validation and untouched test required"
+}

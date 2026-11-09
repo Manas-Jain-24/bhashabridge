@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 from app.services.base import BaseTransliterationService
 from app.core.config import settings
+from app.services.text_entities import map_unprotected
 
 logger = logging.getLogger("bhashabridge.transliteration")
 
@@ -114,6 +115,10 @@ class NeuralTransliterationService(BaseTransliterationService):
         validate_language(language)
         check_source_script(text, language)
         direction = {"latin_to_native": "latin_to_devanagari", "native_to_latin": "devanagari_to_latin"}.get(direction, direction)
+        return map_unprotected(text, lambda chunk:self._transliterate_chunk(chunk,language,direction))
+
+    def _transliterate_chunk(self, text, language, direction):
+        """Convert ordinary text without modifying opaque entity spans."""
         backend = LANGUAGES[language]["transliteration_backend"]
         if backend == "bengali_phonetic":
             from app.services.transliteration.bengali import transliterate_bengali

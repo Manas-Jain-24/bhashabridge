@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "seed_policy": "SHA256(document ID + fixed version salt); whole documents",
+  "validation_multiway_rows": 78,
+  "test_multiway_rows": 139,
+  "training_pairs": 997,
+  "correction_pairs": 0,
+  "ntrex_revision": "468c6b69c7f6a75d31d4743d9daba2af566cc18d",
+  "sha256": {
+    "test.jsonl": "62df1912316d7850e0cee49beff3c237bf7e553861fb1b010674562faa4ce33e",
+    "train.jsonl": "69d4d93d9941d8d78fd269fb4ba020220cc44dec2720447ce0b2b8a7e1789dc3",
+    "validation.jsonl": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f"
+  },
+  "raw_sha256": {
+    "bengali.txt": "7fae73a2d1d24fdcb47f68a0691253cda05fa55c5ca944bc3cdf8eb2945825f1",
+    "documents.tsv": "88a8b0ff1eae47e83f60dcde01075b8c87d75ced59ca09e0af1eb539958e05d5",
+    "english.txt": "389e8f5796c66db4f646dfad33e1ec622d74767af5ef112b42a1f2cd814df3cc",
+    "hindi.txt": "10d612b3960dc1f90d297aff7e3c6d39e6eb7221b912cef0c053d9f510e41bbc",
+    "LICENSE.md": "5e436ff8ffbb77d8607220e9bce20c8915d860010feeb6c1ebef5a85688e9b39",
+    "marathi.txt": "a72aaecd670f18b045bb3704c41277faea665ecaaf8af6932a8c3ea51ae5ac7b"
+  },
+  "sources": [
+    {
+      "name": "NTREX-128",
+      "url": "https://github.com/MicrosoftTranslator/NTREX",
+      "citation": "Federmann, Kocmi and Xin (2022), NTREX-128; and Barrault et al. (2019), WMT19.",
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "name": "FLORES-200 dev",
+      "url": "https://github.com/facebookresearch/flores",
+      "license": "CC-BY-SA-4.0"
+    }
+  ],
+  "limitations": [
+    "News-domain subset, not the full NTREX corpus.",
+    "Upstream pretrained-model exposure is unknown.",
+    "Locally authored corrections are drafts, not native-speaker reviewed.",
+    "No NTREX or FLORES devtest reference is used for training."
+  ]
+}

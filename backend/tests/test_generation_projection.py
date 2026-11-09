@@ -30,7 +30,8 @@ def test_generation_projection_preserves_last_logits_and_restores_head():
     assert model.head(states).shape==(3,11,23)
 
 
-def test_repetitive_bengali_translation_returns_quality_error(monkeypatch):
+@pytest.mark.parametrize('bad_output',['डायोक्स-'*12,'मूल्य <ID2> है।'])
+def test_repetitive_bengali_translation_returns_quality_error(monkeypatch,bad_output):
     import sys
     from contextlib import nullcontext
     from types import SimpleNamespace
@@ -40,7 +41,7 @@ def test_repetitive_bengali_translation_returns_quality_error(monkeypatch):
         def to(self,device): return self
     class Tokenizer:
         def __call__(self,*args,**kwargs): return Encoding(input_ids=[1])
-        def batch_decode(self,*args,**kwargs): return ['डायोक्स-'*12]
+        def batch_decode(self,*args,**kwargs): return [bad_output]
     class Model:
         def parameters(self): yield SimpleNamespace(device='cpu')
         def generate(self,**kwargs): return [1]

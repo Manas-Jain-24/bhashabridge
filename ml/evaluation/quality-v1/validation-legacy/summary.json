@@ -1,0 +1,177 @@
+{
+  "complete": true,
+  "split": "validation",
+  "examples_per_direction": 78,
+  "directions": [
+    {
+      "identity": {
+        "split": "validation",
+        "source": "hindi",
+        "target": "marathi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 6.614577325079382,
+      "chrf_plus_plus": 39.31800350698544,
+      "inference_failures": 0,
+      "elapsed_seconds": 20.230978100000357
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "hindi",
+        "target": "bengali",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 12.123890783764006,
+      "chrf_plus_plus": 43.023300604362035,
+      "inference_failures": 0,
+      "elapsed_seconds": 18.696616400000494
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "marathi",
+        "target": "hindi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 16.784820382195264,
+      "chrf_plus_plus": 42.27927221370137,
+      "inference_failures": 0,
+      "elapsed_seconds": 17.450615999998263
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "marathi",
+        "target": "bengali",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 14.019747576214899,
+      "chrf_plus_plus": 44.97950072694667,
+      "inference_failures": 0,
+      "elapsed_seconds": 15.047371699998621
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "hindi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 16.435234011673607,
+      "chrf_plus_plus": 40.87517265586527,
+      "inference_failures": 0,
+      "elapsed_seconds": 27.194961400000466
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "marathi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-legacy-v1",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 7.377907783030267,
+      "chrf_plus_plus": 40.345462211985996,
+      "inference_failures": 0,
+      "elapsed_seconds": 16.339934399999038
+    }
+  ],
+  "scope": "Frozen document-disjoint NTREX subset; not all NTREX or general accuracy.",
+  "upstream_training_exposure": "unknown"
+}

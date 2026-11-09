@@ -1,0 +1,108 @@
+{
+  "complete": true,
+  "directions": [
+    {
+      "pair": "bengali-hindi",
+      "examples": 1012,
+      "flags": {
+        "possible_number_change": 388,
+        "possible_acronym_change": 32,
+        "unusual_length_ratio": 1
+      },
+      "review_queue_examples": 45,
+      "report_sha256": "657b34ee8aee616225de8216ddaa606b5296074da50faca79a8d77feede1d18a"
+    },
+    {
+      "pair": "bengali-marathi",
+      "examples": 1012,
+      "flags": {
+        "possible_number_change": 436,
+        "possible_acronym_change": 33,
+        "placeholder_artifact": 1,
+        "unusual_length_ratio": 1,
+        "inference_failure": 1
+      },
+      "review_queue_examples": 45,
+      "report_sha256": "7859f1b16872ec009530b62f667302e289a7a5f4fffb2bc647340bb0f3aa6701"
+    },
+    {
+      "pair": "hindi-bengali",
+      "examples": 1012,
+      "flags": {
+        "possible_acronym_change": 24,
+        "possible_number_change": 68
+      },
+      "review_queue_examples": 43,
+      "report_sha256": "6b27177daa19b5f28576ebb45bb1476b5ec8fc2e9dd9c75233de6b0c50a40dff"
+    },
+    {
+      "pair": "hindi-marathi",
+      "examples": 1012,
+      "flags": {
+        "possible_acronym_change": 24,
+        "possible_number_change": 69
+      },
+      "review_queue_examples": 43,
+      "report_sha256": "0cc1115d290baa67bc56df7d5a60364809a8ed06b9354ae80d970ca26698bc89"
+    },
+    {
+      "pair": "marathi-bengali",
+      "examples": 1012,
+      "flags": {
+        "possible_number_change": 76,
+        "possible_acronym_change": 39
+      },
+      "review_queue_examples": 43,
+      "report_sha256": "51ce41104fbc1d565a30479ce02fc5c679d6fe4e8f356b8fc6c5de563e796072"
+    },
+    {
+      "pair": "marathi-hindi",
+      "examples": 1012,
+      "flags": {
+        "possible_number_change": 82,
+        "possible_acronym_change": 37
+      },
+      "review_queue_examples": 44,
+      "report_sha256": "6192a617c1a496d21b5b03bcae569c8bedbb57b81d342a050de5b6e6c8dce4fc"
+    }
+  ],
+  "review_queue_examples": 263,
+  "provisional_observations": [
+    {
+      "pair": "bengali-marathi",
+      "index": 304,
+      "category": "degenerate_generation",
+      "observation": "Repeated fragment rejected by the output guard. Empty hypothesis retained in scoring."
+    },
+    {
+      "pair": "bengali-marathi",
+      "index": 76,
+      "category": "placeholder_corruption",
+      "observation": "Prediction contains a run of Greek omega/digit fragments and loses most sentence content."
+    },
+    {
+      "pair": "bengali-marathi",
+      "index": 662,
+      "category": "extraneous_content",
+      "observation": "Prediction adds an unrelated fragment resembling a date/era inside a sentence about leadership."
+    },
+    {
+      "pair": "bengali-marathi",
+      "index": 643,
+      "category": "reference_variation",
+      "observation": "Bengali source says pen; prediction also says pen while Marathi reference says pencil. Low similarity alone is not a demonstrated meaning error."
+    },
+    {
+      "pair": "bengali-marathi",
+      "index": 994,
+      "category": "wording_or_reference_variation",
+      "observation": "Prediction uses a literal nearby-holiday phrasing. Needs bilingual review before classifying as a semantic error."
+    }
+  ],
+  "limitations": [
+    "Heuristic flags are review candidates, not confirmed error counts.",
+    "No automated score can verify all names, tense, negation or meaning.",
+    "A native bilingual reviewer has not approved this queue.",
+    "Benchmark sources and references are forbidden training inputs."
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "complete": true,
+  "selection": {
+    "selection_used": "validation_only",
+    "scope": [
+      "bengali",
+      "marathi"
+    ],
+    "baseline": {
+      "bleu": 7.398184079710036,
+      "chrf_plus_plus": 40.34465961391408,
+      "inference_failures": 0
+    },
+    "candidates": [
+      {
+        "epoch": 1,
+        "bleu": 8.248150842425362,
+        "chrf_plus_plus": 40.41435382938039,
+        "inference_failures": 0
+      },
+      {
+        "epoch": 2,
+        "bleu": 7.902126308168819,
+        "chrf_plus_plus": 40.698930156514635,
+        "inference_failures": 0
+      }
+    ],
+    "selected_epoch": 2,
+    "adapter": "ml/experiments/translation-lora-v1/epoch-2",
+    "adapter_sha256": "f51e403474fd0fa03773aa5de0065c0a3c49ce11917392156a739dd6bb2b16d4",
+    "validation_gate_passed": false,
+    "validation_gate": {
+      "minimum_chrf_gain": 0.5,
+      "minimum_bleu_gain": 0,
+      "additional_failures_allowed": 0
+    },
+    "test_gate": {
+      "minimum_chrf_gain": 0,
+      "maximum_bleu_loss": 0.5,
+      "additional_failures_allowed": 0
+    },
+    "test_used_for_epoch_selection": false
+  },
+  "test_baseline": {
+    "bleu": 8.472626493206093,
+    "chrf_plus_plus": 39.12098343326594,
+    "inference_failures": 2
+  },
+  "test_candidate": {
+    "bleu": 9.311794306285854,
+    "chrf_plus_plus": 38.88456413236091,
+    "inference_failures": 3
+  },
+  "promotion_recommended": false,
+  "production_scope": [
+    "bengali",
+    "marathi"
+  ],
+  "limitations": [
+    "Fresh document-separated NTREX news subset; not general accuracy.",
+    "Upstream pretrained exposure unknown.",
+    "Correction drafts need bilingual review.",
+    "No repeated test-driven tuning was performed."
+  ]
+}

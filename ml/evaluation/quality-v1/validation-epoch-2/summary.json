@@ -1,0 +1,37 @@
+{
+  "complete": true,
+  "split": "validation",
+  "examples_per_direction": 78,
+  "directions": [
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "marathi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": "f51e403474fd0fa03773aa5de0065c0a3c49ce11917392156a739dd6bb2b16d4",
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 7.902126308168819,
+      "chrf_plus_plus": 40.698930156514635,
+      "inference_failures": 0,
+      "elapsed_seconds": 20.695157000001927
+    }
+  ],
+  "scope": "Frozen document-disjoint NTREX subset; not all NTREX or general accuracy.",
+  "upstream_training_exposure": "unknown"
+}

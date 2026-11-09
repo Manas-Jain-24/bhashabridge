@@ -14,10 +14,18 @@ class RepetitiveGenerationError(ValueError):
     pass
 
 
-def validate_native_output(text):
+class OutputArtifactError(ValueError):
+    pass
+
+
+def validate_native_output(text, source_text=''):
     if not text.strip(): raise ValueError('Neural model returned empty text')
     if re.search(r'(.{3,40})\1{3,}',text):
         raise RepetitiveGenerationError('Neural model returned a degenerate repeated fragment')
+    placeholders=re.findall(r'[<\[]\s*id\s*\d+\s*[>\]]', text, re.IGNORECASE)
+    unknown=any(marker not in source_text for marker in placeholders)
+    if unknown or (len(re.findall(r'ω\s*\d+',text))>=3 and 'ω' not in source_text):
+        raise OutputArtifactError('Neural model returned unresolved placeholders')
     return text
 
 

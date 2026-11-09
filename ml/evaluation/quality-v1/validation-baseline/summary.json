@@ -1,0 +1,177 @@
+{
+  "complete": true,
+  "split": "validation",
+  "examples_per_direction": 78,
+  "directions": [
+    {
+      "identity": {
+        "split": "validation",
+        "source": "hindi",
+        "target": "marathi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 6.614577325079382,
+      "chrf_plus_plus": 39.31800350698544,
+      "inference_failures": 0,
+      "elapsed_seconds": 20.568794899998466
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "hindi",
+        "target": "bengali",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 12.123890783764006,
+      "chrf_plus_plus": 43.023300604362035,
+      "inference_failures": 0,
+      "elapsed_seconds": 18.67599540000083
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "marathi",
+        "target": "hindi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 16.759515476852872,
+      "chrf_plus_plus": 42.24920418246205,
+      "inference_failures": 0,
+      "elapsed_seconds": 17.425618499997654
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "marathi",
+        "target": "bengali",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 14.097996283060416,
+      "chrf_plus_plus": 45.03308732664458,
+      "inference_failures": 0,
+      "elapsed_seconds": 14.63935549999951
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "hindi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 16.438691513497687,
+      "chrf_plus_plus": 40.878759504747705,
+      "inference_failures": 0,
+      "elapsed_seconds": 26.561684799999057
+    },
+    {
+      "identity": {
+        "split": "validation",
+        "source": "bengali",
+        "target": "marathi",
+        "examples": 78,
+        "data_sha256": "4051df5cb82282e1170d181d9fc8969a49a18e1167c7c90a4f701386629f904f",
+        "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+        "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+        "processor_version": "windows-entities-v2",
+        "adapter_sha256": null,
+        "precision": "float16",
+        "batch_size": 16,
+        "generation": {
+          "max_length": 256,
+          "num_beams": 5,
+          "use_cache": false,
+          "no_repeat_ngram_size": 4,
+          "early_stopping": true
+        },
+        "torch_version": "2.14.1+cu130",
+        "device": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "bleu": 7.398184079710036,
+      "chrf_plus_plus": 40.34465961391408,
+      "inference_failures": 0,
+      "elapsed_seconds": 15.822483900003135
+    }
+  ],
+  "scope": "Frozen document-disjoint NTREX subset; not all NTREX or general accuracy.",
+  "upstream_training_exposure": "unknown"
+}

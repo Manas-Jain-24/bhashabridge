@@ -70,6 +70,7 @@ def main():
         identity={'source_language':source,'target_language':target,'test_sha256':hashlib.sha256(data_path.read_bytes()).hexdigest(),
                   'model':translator.model_checkpoint,'model_revision':getattr(translator.model.config,'_commit_hash',None),
                   'processor':type(translator.processor).__name__,'precision':str(next(translator.model.parameters()).dtype).replace('torch.',''),'generation':GENERATION_SETTINGS,
+                  'processor_version':getattr(translator.processor,'VERSION','upstream'),
                   'requested_examples':len(rows),'test_source':'FLORES-200 devtest'}
         previous=json.loads(output.read_text(encoding='utf-8')) if output.exists() else {}
         if previous and previous.get('identity')!=identity: raise ValueError(f'Incompatible report: {output}')

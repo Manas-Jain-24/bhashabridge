@@ -3,6 +3,8 @@
 
 BhashaBridge helps Hindi, Marathi and Bengali learners move between Roman spellings and native scripts through translation, script practice and lesson checkpoints. Support varies by language: the original curated course focuses on Hindi–Marathi, while Bengali translation and Roman spelling support remain experimental. Measured results and review labels make those limits explicit.
 
+Translation now offers **Hybrid (local + Gemini)** and **Local model** modes. Hybrid preserves the original input alongside the spelling estimate and local draft, handles sentence meaning and ambiguity in one contextual response, and labels provider failures when falling back locally. The earlier sentence-specific learning override has been removed. See the [root-cause diagnosis, architecture and runtime diagnostics](docs/TRANSLATION_PIPELINE.md); model assistance is not a correctness guarantee.
+
 
 ## Multilingual games and expanded data
 

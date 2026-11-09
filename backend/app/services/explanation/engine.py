@@ -176,20 +176,16 @@ class HybridExplanationEngine(BaseExplanationService):
         source_text: str,
         source_language: str = "hindi",
         target_text: str = "marathi",
-        target_language: str = "marathi"
+        target_language: str = "marathi",
+        use_tutor: bool = True,
     ) -> Dict[str, Any]:
         """
         Public entrypoint with automatic fallback to preserved legacy engine if needed.
         """
         validate_language(source_language)
         validate_language(target_language)
-        if (source_language, target_language) == ('hindi', 'bengali'):
-            from app.services.translation.learning_phrases import explain_learning_phrase
-            learning = explain_learning_phrase(source_text, source_language, target_text, target_language)
-            if learning is not None:
-                return learning
         if not rule_pair(source_language, target_language):
-            enrichment = llm_tutor.explain(source_text, source_language, target_text, target_language)
+            enrichment = llm_tutor.explain(source_text, source_language, target_text, target_language) if use_tutor else None
             return {
                 "summary": (enrichment or {}).get("summary", "Reviewed grammar lessons are not available for this pair yet."),
                 "word_explanations": [], "grammar_points": [],
@@ -201,27 +197,32 @@ class HybridExplanationEngine(BaseExplanationService):
                 "tutor_attempted": True,
             }
         try:
-            return self._explain_enhanced(
+            result = self._explain_enhanced(
                 source_text=source_text,
                 source_language=source_language,
                 target_text=target_text,
-                target_language=target_language
+                target_language=target_language,
+                use_tutor=use_tutor,
             )
         except Exception as e:
             logger.warning(f"Enhanced explanation failed ({e}); falling back to preserved legacy engine.")
-            return self._legacy_engine.explain(
+            result = self._legacy_engine.explain(
                 source_text=source_text,
                 source_language=source_language,
                 target_text=target_text,
                 target_language=target_language
             )
+        if not use_tutor:
+            result['tutor_attempted'] = True
+        return result
 
     def _explain_enhanced(
         self,
         source_text: str,
         source_language: str,
         target_text: str,
-        target_language: str
+        target_language: str,
+        use_tutor: bool = True,
     ) -> Dict[str, Any]:
         combined_text = f"{source_text.lower()} {target_text.lower()}"
 
@@ -321,7 +322,7 @@ class HybridExplanationEngine(BaseExplanationService):
             target_text=target_text,
             target_language=target_language,
             aligned_tokens=[v.model_dump() for v in aligned_vocab]
-        )
+        ) if use_tutor else None
 
         if llm_enrichment:
             explanation_source = "hybrid_gemini"

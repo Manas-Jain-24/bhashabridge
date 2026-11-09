@@ -54,7 +54,7 @@ def test_language_api_and_validation(client):
 
 def test_analyze_preserves_bengali_and_explicit_target(client, monkeypatch):
     from app.api.routes import analyze
-    def translate(db, text, source_language, target_language, script):
+    def translate(db, text, source_language, target_language, script, **context):
         assert text == "আমি জল চাই।" and source_language == "bengali" and target_language == "marathi"
         return {"translation": "मला पाणी पाहिजे।", "translation_native": "मला पाणी पाहिजे।", "translation_roman": "mala paani pahije", "english_meaning": "", "model_source": "test_model"}
     monkeypatch.setattr(analyze, "translate_with_memory", translate)

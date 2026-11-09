@@ -89,8 +89,8 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
           <span className="text-xs text-slate-400">
             {data.model_source === 'reviewed_database' || data.model_source === 'curated_corpus'
               ? 'Reviewed example'
-              : data.model_source === 'learning_construction'
-                ? 'Learning phrase'
+              : data.model_source === 'gemini-contextual'
+                ? 'Gemini-assisted'
               : data.model_source?.startsWith('indictrans2-320m-neural')
                 ? 'AI translation'
                 : 'Rule translation'}
@@ -142,6 +142,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
         )}
       </div>
 
+      {data.quality_note && <p role="status" className="rounded-xl border border-amber-500/30 p-3 text-sm text-amber-100">{data.quality_note}</p>}
       {data.meaning_note && <div role="note" className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-4 space-y-3 text-sm text-amber-100">
         <p>{data.meaning_note}</p>
         {onChooseMeaning && <div className="flex flex-wrap gap-2">{data.meaning_alternatives?.map(option=><button key={option.source_text} onClick={()=>onChooseMeaning(option.source_text)} className="rounded-xl border border-amber-400/30 px-3 py-2 text-xs hover:bg-amber-500/10">{option.label}</button>)}</div>}
@@ -227,7 +228,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
       {/* Why? Button & Learn More Footer */}
       <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80">
         <div className="text-xs text-slate-400 flex items-center gap-2">
-          <span>Input normalized:</span>
+          <span>{data.context_status === 'assisted' ? 'Interpreted source:' : 'Input normalized:'}</span>
           <code className="text-slate-300 bg-slate-900 px-2 py-0.5 rounded text-[11px] border border-slate-800 font-mono">
             {data.native_text}
           </code>

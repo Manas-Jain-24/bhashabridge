@@ -19,12 +19,15 @@ class Settings(BaseSettings):
     TESTING: bool = False
     INIT_DB_ON_STARTUP: bool = True
     TRANSLATION_ENGINE: Literal["indictrans2", "modular", "m2m100"] = "indictrans2"
+    TRANSLATION_MODE: Literal["local", "hybrid"] = "hybrid"
     ALLOW_SQLITE_FALLBACK: bool = False
     INDICTRANS2_MODEL_CHECKPOINT: str = "ai4bharat/indictrans2-indic-indic-dist-320M"
     INDICTRANS2_ADAPTER_DECISION: Optional[str] = None
     HF_TOKEN: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_TRANSLATION_MODEL: str = "gemini-3.5-flash"
+    GEMINI_TRANSLATION_TIMEOUT_SECONDS: float = Field(30.0, ge=5, le=60)
     GEMINI_TIMEOUT_SECONDS: float = Field(15.0, ge=1, le=60)
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",

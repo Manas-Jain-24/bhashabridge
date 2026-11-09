@@ -27,6 +27,7 @@ export default function App() {
   const [sourceLang, setSourceLang] = useState<Language>('hindi');
   const [targetLang, setTargetLang] = useState<Language>('marathi');
   const [scriptMode, setScriptMode] = useState<ScriptMode>('both');
+  const [translationMode, setTranslationMode] = useState<'hybrid' | 'local'>('hybrid');
   const [bridgeLevel, setBridgeLevel] = useState<BridgeLevel>('intermediate');
 
   const [inputText, setInputText] = useState('Mujhe Marathi seekhni hai');
@@ -124,7 +125,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.analyze(text, effectiveSource, effectiveTarget, scriptMode, controller.signal);
+      const res = await api.analyze(text, effectiveSource, effectiveTarget, scriptMode, controller.signal, translationMode);
       if (requestId !== analyzeReqId.current) return;
       if (openExplanation) setIsExplainOpen(true);
       setAnalysisResult(res);
@@ -271,6 +272,17 @@ export default function App() {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+            <label htmlFor="translation-mode">Translation</label>
+            <select id="translation-mode" value={translationMode}
+              onChange={(event) => { invalidateAnalysis(); setTranslationMode(event.target.value as 'hybrid' | 'local'); }}
+              className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white">
+              <option value="hybrid">Hybrid (local + Gemini)</option>
+              <option value="local">Local model</option>
+            </select>
+            <span>Hybrid uses Gemini to interpret the full sentence, including Roman spelling.</span>
+          </div>
+
           {/* Text Input Area */}
           <div className="space-y-3">
             <div className="relative">
@@ -286,7 +298,7 @@ export default function App() {
               {/* Transliteration badge preview */}
               {transliterationPreview && (
                 <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs bg-slate-900/90 border border-indigo-500/30 px-3 py-1 rounded-lg backdrop-blur-md">
-                  <span className="text-slate-400 font-mono">Native script preview:</span>
+                  <span className="text-slate-400 font-mono">Spelling estimate:</span>
                   <span className="text-indigo-300 font-devanagari font-bold">{transliterationPreview}</span>
                 </div>
               )}

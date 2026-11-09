@@ -1,4 +1,5 @@
 from app.core.languages import rule_pair, check_source_script
+from fastapi import HTTPException
 import os
 from app.core.config import settings
 from app.services.base import BaseTranslationService
@@ -6,6 +7,9 @@ from app.services.translation.indictrans2 import indictrans2_adapter
 from app.services.translation.neural_transformer import neural_transformer_translator
 from app.services.translation.translator import modular_translator
 from app.services.translation.memory import lookup_reviewed
+from app.services.translation.contextual import contextual_translator, candidate_explanation
+from app.services.transliteration.service import transliteration_service
+from app.services.language_detection.detector import language_detector
 
 def get_translation_service() -> BaseTranslationService:
     """
@@ -22,20 +26,59 @@ def get_translation_service() -> BaseTranslationService:
 translation_service = get_translation_service()
 
 
-def translate_with_memory(db, text: str, source_language: str, target_language: str, script: str = "both"):
+def translate_with_memory(db, text: str, source_language: str, target_language: str,
+                          script: str = "both", native_text=None, translation_mode=None):
+    """Keep raw text available throughout normalization, local inference and assistance."""
     check_source_script(text, source_language)
+    mode = translation_mode or settings.TRANSLATION_MODE
+    if mode not in ('local', 'hybrid'):
+        raise ValueError('Unsupported translation mode')
     reviewed = lookup_reviewed(db, text, source_language, target_language, script)
     if reviewed is not None:
-        return reviewed
-    if (source_language,target_language)==('hindi','bengali'):
-        from app.services.translation.learning_phrases import translate_learning_phrase
-        from app.services.transliteration.service import transliteration_service
-        # Narrow, full-match constructions keep intention and obligation distinct.
-        native=transliteration_service.transliterate(text,language=source_language,direction='latin_to_native')
-        constructed=translate_learning_phrase(native,source_language,target_language,script)
-        if constructed is not None:
-            constructed['source_text'] = text
-            return constructed
+        return {**reviewed, 'context_status': 'reviewed', '_skip_tutor': mode == 'local'}
+    if native_text is None:
+        normalized = ' '.join(text.split()) if source_language == 'bengali' else language_detector.normalize(text)
+        native_text = transliteration_service.transliterate(normalized, language=source_language, direction='latin_to_native')
     engine = translation_service if rule_pair(source_language, target_language) else indictrans2_adapter
-    return engine.translate(text=text, source_language=source_language,
-                                         target_language=target_language, script=script)
+    draft = None
+    local_error = None
+    try:
+        draft = engine.translate(text=native_text, source_language=source_language,
+                                 target_language=target_language, script=script)
+    except HTTPException as exc:
+        if exc.status_code != 503 or mode == 'local':
+            raise
+        local_error = exc
+    if mode == 'hybrid':
+        candidate, status = contextual_translator.refine(text, native_text, source_language, target_language, draft)
+        if candidate is not None:
+            return {
+                'source_text': text, 'source_language': source_language, 'target_language': target_language,
+                'source_native': candidate.source_native,
+                'translation': candidate.translation_roman if script in ('roman', 'latin') else candidate.translation_native,
+                'translation_native': candidate.translation_native, 'translation_roman': candidate.translation_roman,
+                'english_meaning': candidate.english_meaning, 'english_meaning_source': 'ai_generated',
+                'model_source': 'gemini-contextual', 'engine': 'gemini-contextual',
+                'local_model_source': (draft or {}).get('model_source'),
+                'fallback_used': draft is None, 'context_status': 'assisted',
+                'context_assessment': candidate.assessment,
+                'meaning_note': candidate.meaning_note,
+                'meaning_alternatives': [choice.model_dump() for choice in candidate.meaning_alternatives],
+                '_explanation': candidate_explanation(candidate),
+            }
+    else:
+        status = 'local_only'
+    issue = status if mode == 'hybrid' else None
+    if mode == 'hybrid':
+        status = 'unavailable'
+    if draft is None:
+        raise HTTPException(503, 'Local translation and Gemini assistance are unavailable. Retry later or check model setup.') from local_error
+    note = ('Gemini assistance is unavailable. Showing the local translation without contextual interpretation.'
+            if status == 'unavailable' else None)
+    result = {**draft, 'source_text': text, 'source_native': native_text,
+              'context_status': status, 'context_issue': issue, 'quality_note': note}
+    if status in ('unavailable', 'local_only'):
+        # A failed context call must not trigger another cloud call that merely
+        # rationalizes the same local draft or doubles the timeout.
+        result['_skip_tutor'] = True
+    return result

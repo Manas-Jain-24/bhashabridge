@@ -1,5 +1,11 @@
 # Hindi to Bengali learning intent
 
+**Superseded:** the sentence-specific construction handler described below has
+been removed. The general, raw-input-preserving hybrid coordinator now handles
+intent and ambiguity across all registered directions. See
+[the pipeline diagnosis and design](TRANSLATION_PIPELINE.md). This document records
+the earlier symptom-level fix; it is not the current runtime architecture.
+
 For `Mujhe bengali seekhni hai`, the app now previews `मुझे बंगाली सीखनी है`
 and defaults to the learner's wish: `আমি বাংলা শিখতে চাই।`
 (`ami bangla shikhte chai.`, “I want to learn Bengali.”).

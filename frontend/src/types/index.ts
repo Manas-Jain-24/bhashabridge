@@ -43,6 +43,10 @@ export interface AnalyzeResponse {
   english_meaning_source?: 'reviewed_database' | 'translation_engine' | 'ai_generated' | 'unavailable';
   meaning_note?: string | null;
   meaning_alternatives?: {label: string; source_text: string}[];
+  context_status?: 'reviewed' | 'assisted' | 'unavailable' | 'local_only';
+  context_assessment?: 'equivalent' | 'corrected' | 'ambiguous';
+  quality_note?: string | null;
+  local_model_source?: string | null;
   vocabulary: VocabularyItem[];
   grammar_explanation: GrammarPoint[];
   differences: string[];

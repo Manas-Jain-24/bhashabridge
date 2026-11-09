@@ -24,20 +24,9 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
     detected_script = language_detector.detect_script(normalized)
     
     inferred_lang = language_detector.detect_language(normalized, hint_script=detected_script)
-    norm_lower_words = set(w.lower().strip(".,!?:;\"'()[]{}") for w in normalized.split())
-    has_strong_marathi = any(w in language_detector.MARATHI_CUES for w in norm_lower_words)
-    has_strong_hindi = any(w in language_detector.HINDI_CUES for w in norm_lower_words)
-
-    if request.source_language == "auto":
-        detected_language = inferred_lang
-    elif has_strong_marathi and not has_strong_hindi and request.source_language == "hindi":
-        # User typed unambiguous Marathi (e.g. 'maza naav ... aahe') while selector was on Hindi
-        detected_language = "marathi"
-    elif has_strong_hindi and not has_strong_marathi and request.source_language == "marathi":
-        # User typed unambiguous Hindi (e.g. 'mujhe kal ... jaana hai') while selector was on Marathi
-        detected_language = "hindi"
-    else:
-        detected_language = request.source_language
+    # A shared word such as घर or nahi is not evidence to override an explicit
+    # source selector. Heuristic detection is used only when the caller asks for it.
+    detected_language = inferred_lang if request.source_language == 'auto' else request.source_language
 
     if request.target_language == detected_language and "target_language" in request.model_fields_set:
         raise HTTPException(422, "Source and target languages must be different. Please choose another target language.")
@@ -56,18 +45,23 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
 
     # Translate
     trans_result = translate_with_memory(db,
-        text=native_source,
+        text=request.text,
         source_language=detected_language,
         target_language=target_lang,
-        script=request.preferred_script
+        script=request.preferred_script,
+        native_text=native_source,
+        translation_mode=request.translation_mode,
     )
 
-    # Explain
-    explanation_result = explanation_engine.explain(
+    # Reuse the same contextual interpretation instead of generating a second,
+    # potentially contradictory grammar story for the guessed spelling.
+    native_source = trans_result.get('source_native', native_source)
+    explanation_result = trans_result.get('_explanation') or explanation_engine.explain(
         source_text=native_source,
         source_language=detected_language,
         target_text=trans_result["translation_native"],
-        target_language=target_lang
+        target_language=target_lang,
+        use_tutor=not trans_result.get('_skip_tutor', False),
     )
 
     trans_result=with_english_meaning({**trans_result,'target_language':target_lang},explanation_result)
@@ -85,6 +79,11 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
         english_meaning_source=trans_result['english_meaning_source'],
         meaning_note=trans_result.get('meaning_note'),
         meaning_alternatives=trans_result.get('meaning_alternatives',[]),
+        context_status=trans_result.get('context_status'),
+        context_assessment=trans_result.get('context_assessment'),
+        context_issue=trans_result.get('context_issue'),
+        quality_note=trans_result.get('quality_note'),
+        local_model_source=trans_result.get('local_model_source'),
         vocabulary=explanation_result["word_explanations"],
         grammar_explanation=explanation_result["grammar_points"],
         differences=explanation_result["differences"],

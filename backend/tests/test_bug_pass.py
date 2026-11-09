@@ -27,10 +27,11 @@ def test_analyze_never_silently_switches_explicit_target(client, source):
     assert result.status_code == 422
 
 
-def test_mixed_bengali_input_is_normalized_before_translation(client, monkeypatch):
+def test_mixed_bengali_input_keeps_raw_text_alongside_native_guess(client, monkeypatch):
     from app.api.routes import analyze
     def translate(db, text, **kwargs):
-        assert text == "আমি বাংলা শিখতে চাই।"
+        assert text == "আমি bangla shikhte chai।"
+        assert kwargs['native_text'] == "আমি বাংলা শিখতে চাই।"
         return dict(translation="test",translation_native="मैं बंगाली सीखना चाहता हूँ।",translation_roman="test",english_meaning="")
     monkeypatch.setattr(analyze, "translate_with_memory", translate)
     result = client.post("/api/analyze", json={"text":"আমি bangla shikhte chai।", "source_language":"bengali", "target_language":"hindi"})

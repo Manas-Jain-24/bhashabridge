@@ -14,6 +14,7 @@ class TranslateRequest(BaseModel):
     source_language: Language = Field("hindi", description="Registered source language")
     target_language: Language = Field("marathi", description="Registered target language")
     script: Literal["both", "native", "devanagari", "roman", "latin"] = Field("both", description="latin, devanagari, or both")
+    translation_mode: Optional[Literal['local', 'hybrid']] = None
 
     @model_validator(mode="after")
     def distinct_languages(self):
@@ -35,3 +36,9 @@ class TranslateResponse(BaseModel):
     fallback_used: Optional[bool] = False
     meaning_note: Optional[str] = None
     meaning_alternatives: List[MeaningAlternative] = Field(default_factory=list)
+    source_native: Optional[str] = None
+    context_status: Optional[Literal['reviewed', 'assisted', 'unavailable', 'local_only']] = None
+    context_assessment: Optional[Literal['equivalent', 'corrected', 'ambiguous']] = None
+    context_issue: Optional[str] = None
+    quality_note: Optional[str] = None
+    local_model_source: Optional[str] = None

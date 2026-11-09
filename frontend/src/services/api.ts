@@ -15,7 +15,8 @@ export const api = {
     sourceLanguage: string = 'auto',
     targetLanguage: string = 'marathi',
     preferredScript: ScriptMode = 'both',
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    translationMode: 'hybrid' | 'local' = 'hybrid',
   ): Promise<AnalyzeResponse> {
     const res = await fetch(`${API_BASE}/analyze`, {
       signal,
@@ -26,6 +27,7 @@ export const api = {
         source_language: sourceLanguage,
         target_language: targetLanguage,
         preferred_script: preferredScript,
+        translation_mode: translationMode,
       }),
     });
     if (!res.ok) { const error = await res.json().catch(() => ({})); throw new Error(typeof error.detail === 'string' ? error.detail : 'Analysis failed. Please check the language and retry.'); }

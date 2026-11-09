@@ -13,6 +13,7 @@ def translate_text(request: TranslateRequest, db: Session = Depends(get_db)):
         text=request.text,
         source_language=request.source_language,
         target_language=request.target_language,
-        script=request.script
+        script=request.script,
+        translation_mode=request.translation_mode,
     )
     return TranslateResponse(**with_english_meaning(result))

@@ -32,6 +32,7 @@ class AnalyzeRequest(BaseModel):
     source_language: AutoLanguage = Field("auto", description="auto or a registered source language")
     target_language: Language = Field("marathi", description="Registered target language")
     preferred_script: Literal["both", "native", "devanagari", "roman", "latin"] = Field("both", description="devanagari, roman, or both")
+    translation_mode: Optional[Literal['local', 'hybrid']] = None
 
 from app.schemas.translate import EnglishMeaningSource, MeaningAlternative
 
@@ -49,6 +50,11 @@ class AnalyzeResponse(BaseModel):
     english_meaning_source: EnglishMeaningSource = 'unavailable'
     meaning_note: Optional[str] = None
     meaning_alternatives: List[MeaningAlternative] = Field(default_factory=list)
+    context_status: Optional[Literal['reviewed', 'assisted', 'unavailable', 'local_only']] = None
+    context_assessment: Optional[Literal['equivalent', 'corrected', 'ambiguous']] = None
+    context_issue: Optional[str] = None
+    quality_note: Optional[str] = None
+    local_model_source: Optional[str] = None
     vocabulary: List[VocabularyItem] = []
     grammar_explanation: List[GrammarPoint] = []
     differences: List[str] = []

@@ -1,0 +1,144 @@
+{
+  "complete": true,
+  "diagnostic_subset": false,
+  "examples_per_direction": 1012,
+  "full_split_examples_per_direction": 1012,
+  "postprocessor": "terminal-quotes-v1",
+  "configuration": {
+    "generation": {
+      "early_stopping": true,
+      "max_length": 256,
+      "no_repeat_ngram_size": 4,
+      "num_beams": 5,
+      "use_cache": false
+    },
+    "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+    "model_revision": "ffb7582b6d43791f1fb26b2153fc065f2e9ea575",
+    "precision": "float16",
+    "processor": "IndicScriptProcessor",
+    "test_sha256": "b4dedb2c3c8b4f37bcc0bb6ae41f0769fa704cf8e586f33df26ebc194c9c1dee"
+  },
+  "sampling": "Full frozen split",
+  "directions": [
+    {
+      "source": "bengali",
+      "target": "hindi",
+      "examples": 1012,
+      "bleu": 20.23097512012812,
+      "chrf_plus_plus": 44.46817504531042,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 374.25032830000055,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 0
+    },
+    {
+      "source": "bengali",
+      "target": "marathi",
+      "examples": 1012,
+      "bleu": 11.064565607092153,
+      "chrf_plus_plus": 40.19278091863403,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 539.3563914999977,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 1
+    },
+    {
+      "source": "hindi",
+      "target": "bengali",
+      "examples": 1012,
+      "bleu": 15.319155778082372,
+      "chrf_plus_plus": 44.24846960093715,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 189.1722837999987,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 0
+    },
+    {
+      "source": "hindi",
+      "target": "marathi",
+      "examples": 1012,
+      "bleu": 13.779249413267243,
+      "chrf_plus_plus": 44.10356168863489,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 185.32321429999865,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 0
+    },
+    {
+      "source": "marathi",
+      "target": "bengali",
+      "examples": 1012,
+      "bleu": 14.900003016930125,
+      "chrf_plus_plus": 43.27100164851242,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 190.91098429999693,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 0
+    },
+    {
+      "source": "marathi",
+      "target": "hindi",
+      "examples": 1012,
+      "bleu": 23.94720760598638,
+      "chrf_plus_plus": 47.80457333067014,
+      "punctuation_repairs": 0,
+      "elapsed_seconds": 204.92410390000077,
+      "runtime_config": {
+        "threads": 4,
+        "batch_size": 32,
+        "streamed_weights": false,
+        "last_token_projection": true,
+        "device": "cuda:0",
+        "torch_version": "2.14.1+cu130",
+        "cuda_version": "13.0",
+        "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU"
+      },
+      "inference_failures": 0
+    }
+  ]
+}

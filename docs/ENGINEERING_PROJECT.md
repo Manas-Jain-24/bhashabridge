@@ -37,7 +37,7 @@ Lesson checkpoints are graded by the server. Passing at least 80% records comple
 - Bengali transliteration: see [model card](../ml/models/bengali-v1/MODEL_CARD.md) and [test report](../ml/experiments/bengali-v1/test_evaluation.json). Test exact match is 36.92% against 9.84% for the previous fallback on the defined word benchmark. This is an improvement, not a claim of high general accuracy.
 - Translation evaluation: `scripts/evaluate_expanded_translation.py --all-pairs --offline` attempts all six directions and the full split. It saves per-batch progress, model revision, corpus hash, generation configuration, precision, metric signatures, predictions and low-scoring examples. Subsets use `--limit` and are marked diagnostic. A report is finished only when `complete` is true; completed subsets are still not the full benchmark.
 - The translation benchmark measures the native-script neural path, excluding reviewed-memory overrides and Roman input. Our training/teaching overlap audit cannot establish whether upstream pretrained weights saw this benchmark.
-- The local six-direction diagnostic and observed failures are documented in [translation evaluation](TRANSLATION_EVALUATION.md). It uses a small source-order prefix, not a representative benchmark.
+- The full GPU benchmark, earlier six-direction diagnostic and observed failures are documented in [translation evaluation](TRANSLATION_EVALUATION.md). The earlier diagnostic uses a small source-order prefix; the GPU report covers the full frozen split.
 - Optional `--stream-weights --precision float16` uses bounded reads of cached weights to reduce Windows memory-map pressure. It changes numerical precision and can be slower on CPUs. Reports identify the chosen precision; do not combine different configurations into one score.
 
 ## Quality gates
@@ -56,11 +56,11 @@ Hashed corpus files and model vocabularies have explicit `.gitattributes` rules 
 
 ## Verification on 9 November 2026
 
-- Final complete backend suite after English-meaning support: **179 passed**; one existing Starlette/httpx deprecation warning remains.
+- Final complete backend suite after CUDA setup and benchmark-report validation: **186 passed**; one existing Starlette/httpx deprecation warning remains.
 - Frontend TypeScript check and production build passed.
 - Both corpus leakage audits passed. All seven expanded corpus hashes and both inference artifact hashes were verified against the staged Git bytes, including cross-platform newline handling.
 - Isolated browser checks displayed Bengali lessons and a server-created checkpoint, cleared a round when changing difficulty, and reported no JavaScript errors. A navigation overflow discovered during testing was fixed; document width equals viewport width at both 320px and 390px.
 - The managed launcher passed a temporary-database smoke test through the frontend API proxy. Both temporary ports were confirmed closed after shutdown.
 - The Bengali inference artifact loaded successfully. The separate validation and test word-model results are recorded in its model card; the sentence diagnostic has its own protocol and limitations.
-- All six sentence-translation directions completed the final 16-row diagnostic (96 outputs), with zero inference exceptions. The complete 1,012-row-per-direction benchmark remains unrun; these diagnostic results are not a representative quality estimate.
+- All six sentence-translation directions completed the full 1,012-row-per-direction GPU benchmark (6,072 cases), with 1 inference failure. The complete command and finalization took 28.6 minutes. See [translation evaluation](TRANSLATION_EVALUATION.md) for full BLEU/chrF++ scores and limitations. The earlier 16-row diagnostic remains separately documented.
 - English meanings reuse the analysis tutor response, preserve reviewed glosses, and fail independently of the native translation. The live Bengali example returned “I have to go home.”; browser checks verified the generated label, separate English controls and no horizontal overflow at 320px/390px.

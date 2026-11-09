@@ -14,7 +14,7 @@ Beginner games now use everyday vocabulary with topic filters. Mistakes enter a 
 
 A new Bengali character model completed three training epochs on 90,293 pairs. On a separate 2,500-word test split, exact match rose from **9.84% to 36.92%**, and Unicode-codepoint CER fell from **36.37% to 17.82%** against the previous dictionary/phonetic fallback. It remains experimental and follows lexical lookup. See the [model card](ml/models/bengali-v1/MODEL_CARD.md) for the full protocol, limitations and reproducible commands.
 
-For setup, the managed demo launcher, the walkthrough, content review status, evaluation and CI, see the [engineering project guide](docs/ENGINEERING_PROJECT.md).
+For setup, the managed demo launcher, the walkthrough, content review status, evaluation and CI, see the [engineering project guide](docs/ENGINEERING_PROJECT.md). For NVIDIA GPU setup and the resumable six-direction benchmark, see [GPU evaluation](docs/GPU_BENCHMARK.md).
 
 ## Bengali and future language support
 

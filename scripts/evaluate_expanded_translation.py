@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=ROOT/'ml/evaluation/expanded')
     parser.add_argument("--limit", type=int, default=0, help="0 evaluates the full split; smaller runs are diagnostic only")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument('--require-device', choices=['cpu', 'cuda'], help='Fail instead of benchmarking on a different device')
     args = parser.parse_args()
     if args.limit<0 or args.batch_size<1 or args.threads<1: parser.error('Invalid limit, batch size or threads')
     if not args.all_pairs and (not args.source or not args.target or args.source==args.target): parser.error('Choose --all-pairs or distinct source and target')
@@ -49,6 +50,14 @@ def main():
     logging.info('Loading neural checkpoint')
     translator=IndicTrans2Adapter(cpu_dtype=args.precision,stream_weights=args.stream_weights)
     if not translator._lazy_load_model(): raise RuntimeError('Neural model unavailable; fallback scores will not be published')
+    device = next(translator.model.parameters()).device
+    if args.require_device and device.type != args.require_device:
+        raise RuntimeError(f'Required {args.require_device}, but model loaded on {device}')
+    runtime = {'threads':args.threads,'batch_size':args.batch_size,'streamed_weights':args.stream_weights,
+               'last_token_projection':True,'device':str(device),'torch_version':torch.__version__,
+               'cuda_version':torch.version.cuda,
+               'device_name':torch.cuda.get_device_name(device) if device.type=='cuda' else 'CPU'}
+    logging.info('Inference runtime: %s', json.dumps(runtime))
     data_path=ROOT/'data/processed/expanded/translation/test.jsonl'
     rows=[json.loads(line) for line in data_path.read_text(encoding='utf-8').splitlines()]
     total=len(rows)
@@ -88,7 +97,7 @@ def main():
             predictions.extend({'index':index+i,'source':row['sentences'][source],'reference':row['sentences'][target],'prediction':text,
                                 **({'inference_error':errors[i]} if i in errors else {})} for i,(row,text) in enumerate(zip(batch,translated)))
             write_json(output,{**previous,'identity':identity,'complete':False,'diagnostic_subset':len(rows)<total,'examples':len(predictions),
-                               'elapsed_seconds':elapsed+time.monotonic()-start,'predictions':predictions})
+                               'runtime_config':runtime,'elapsed_seconds':elapsed+time.monotonic()-start,'predictions':predictions})
             print(f'{source}->{target}: {len(predictions)}/{len(rows)} ({elapsed+time.monotonic()-start:.1f}s)',flush=True)
         for prediction in predictions:
             fixed=finish_native_sentence(prediction['prediction'])
@@ -101,7 +110,7 @@ def main():
         errors=sorted(({**p,'sentence_chrf_plus_plus':chrf.sentence_score(p['prediction'],[p['reference']]).score} for p in predictions),key=lambda p:p['sentence_chrf_plus_plus'])[:10]
         write_json(output,{**previous,'identity':identity,'complete':True,'diagnostic_subset':len(rows)<total,'examples':len(predictions),
                            'postprocessor':POSTPROCESSOR_VERSION,'generation_parity_verified':parity,'inference_failures':sum('inference_error' in p for p in predictions),
-                           'runtime_config':{'threads':args.threads,'batch_size':args.batch_size,'streamed_weights':args.stream_weights,'last_token_projection':True,'device':str(next(translator.model.parameters()).device)},
+                           'runtime_config':runtime,
                            'sample_selection':'Full split' if len(rows)==total else f'First {len(rows)} source-order rows; domain-biased diagnostic, not representative.',
                            'elapsed_seconds':elapsed+time.monotonic()-start,**scores,'lowest_scoring_examples':errors,'predictions':predictions,
                            'limitations':['Automatic similarity does not replace bilingual review.','Our teaching data is excluded; upstream pretrained-model exposure is unknown.','Native-script model path; reviewed-memory overrides and Roman input are not evaluated.']})

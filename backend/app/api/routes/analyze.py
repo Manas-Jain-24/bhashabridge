@@ -20,13 +20,15 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
     """
     if request.source_language != "auto":
         check_source_script(request.text, request.source_language)
-    normalized = " ".join(request.text.split()) if request.source_language == "bengali" else language_detector.normalize(request.text)
-    detected_script = language_detector.detect_script(normalized)
+    clean_input = " ".join(request.text.split())
+    detected_script = language_detector.detect_script(clean_input)
     
-    inferred_lang = language_detector.detect_language(normalized, hint_script=detected_script)
+    inferred_lang = language_detector.detect_language(clean_input, hint_script=detected_script)
     # A shared word such as घर or nahi is not evidence to override an explicit
     # source selector. Heuristic detection is used only when the caller asks for it.
     detected_language = inferred_lang if request.source_language == 'auto' else request.source_language
+    # Detect first: Hindi chat replacements can change Bengali Roman words.
+    normalized = clean_input if detected_language == 'bengali' else language_detector.normalize(clean_input)
 
     if request.target_language == detected_language and "target_language" in request.model_fields_set:
         raise HTTPException(422, "Source and target languages must be different. Please choose another target language.")

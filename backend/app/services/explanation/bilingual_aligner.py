@@ -109,6 +109,28 @@ if _EXT_LEXICON_PATH.exists():
         pass
 
 import re
+import unicodedata
+from app.services.transliteration.service import transliteration_service
+
+
+def _tokens(text):
+    # Python's \w excludes Indic vowel marks; splitting on it destroys words.
+    return re.findall(r'''[^\s.,!?:;"'()\[\]{}।]+''', text)
+
+
+def _contains_term(text, term):
+    if not term:
+        return False
+    def word_char(char):
+        return char == '_' or unicodedata.category(char)[0] in 'LMN'
+    start = text.find(term)
+    while start >= 0:
+        end = start + len(term)
+        if ((start == 0 or not word_char(text[start - 1]))
+                and (end == len(text) or not word_char(text[end]))):
+            return True
+        start = text.find(term, start + 1)
+    return False
 
 def _norm_dev(t: str) -> str:
     """Normalize common cross-language/transliteration Devanagari character variants."""
@@ -152,15 +174,11 @@ def align_sentence_vocabulary(source_text: str, target_text: str, source_lang: s
         norm_mr = _norm_dev(mr_term)
 
         # Check direct or phonetically normalized match
-        hi_match = (
-            (hi_term in clean_src or norm_hi in norm_src) or
-            (hi_term in clean_tgt or norm_hi in norm_tgt)
-        )
-        mr_match = (
-            (mr_term in clean_src or norm_mr in norm_src) or
-            (mr_term in clean_tgt or norm_mr in norm_tgt) or
-            (entry.get("mr_rom", "").lower() in clean_tgt)
-        )
+        hi_text, mr_text = (clean_src, clean_tgt) if source_lang == 'hindi' else (clean_tgt, clean_src)
+        hi_norm, mr_norm = (norm_src, norm_tgt) if source_lang == 'hindi' else (norm_tgt, norm_src)
+        hi_match = _contains_term(hi_text, hi_term) or _contains_term(hi_norm, norm_hi)
+        mr_match = (_contains_term(mr_text, mr_term) or _contains_term(mr_norm, norm_mr)
+                    or _contains_term(mr_text, entry.get('mr_rom', '').lower()))
 
         if hi_match and mr_match:
             key = entry["mr"].strip()
@@ -188,15 +206,15 @@ def align_sentence_vocabulary(source_text: str, target_text: str, source_lang: s
                 ))
 
     # Dynamic Token Fallback: Ensure unaligned content tokens in the sentence are matched
-    src_tokens = [w.strip(".,!?:;\"'()[]{}।") for w in re.findall(r"[\w]+", source_text) if len(w) > 0]
-    tgt_tokens = [w.strip(".,!?:;\"'()[]{}।") for w in re.findall(r"[\w]+", target_text) if len(w) > 0]
+    src_tokens = _tokens(source_text)
+    tgt_tokens = _tokens(target_text)
 
     matched_src = set()
     matched_tgt = set()
     for item in aligned:
-        for sw in re.findall(r"[\w]+", item.source_word):
+        for sw in _tokens(item.source_word):
             matched_src.add(_norm_dev(sw))
-        for tw in re.findall(r"[\w]+", item.target_word):
+        for tw in _tokens(item.target_word):
             matched_tgt.add(_norm_dev(tw))
 
     unmatched_src = [w for w in src_tokens if _norm_dev(w) not in matched_src]
@@ -227,10 +245,10 @@ def align_sentence_vocabulary(source_text: str, target_text: str, source_lang: s
             source_word=" ".join(unmatched_src),
             target_word=" ".join(unmatched_tgt),
             target_roman=" ".join(unmatched_tgt),
-            meaning="Predicate expression / Verbal construction",
-            part_of_speech="verb phrase",
-            is_construction_based=True,
-            morph_analysis="Syntactic clause alignment",
+            meaning="Remaining text; word alignment is unavailable",
+            part_of_speech="unclassified",
+            is_construction_based=False,
+            morph_analysis=None,
             gender_contrast=None,
             root_lemma=" ".join(unmatched_tgt)
         ))
@@ -261,4 +279,9 @@ def align_sentence_vocabulary(source_text: str, target_text: str, source_lang: s
             root_lemma=None
         ))
 
+    target_language = 'marathi' if source_lang == 'hindi' else 'hindi'
+    for item in aligned:
+        if not item.target_roman or re.search(r'[\u0900-\u097f]', item.target_roman):
+            item.target_roman = transliteration_service.transliterate(
+                item.target_word, language=target_language, direction='native_to_latin')
     return aligned

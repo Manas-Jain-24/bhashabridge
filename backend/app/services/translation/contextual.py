@@ -23,7 +23,7 @@ from app.services.text_entities import ENTITY_PATTERN
 from app.services.translation.generation import validate_native_output
 
 logger = logging.getLogger(__name__)
-PROMPT_VERSION = 'raw-source-context-v2'
+PROMPT_VERSION = 'raw-source-context-v3'
 
 
 class MeaningChoice(BaseModel):
@@ -53,16 +53,22 @@ class ContextualCandidate(BaseModel):
 
 def protected_values(text):
     """Exact opaque identifiers plus numerals, allowing Indic digit equivalents."""
-    text = ''.join(str(unicodedata.decimal(c)) if c.isdecimal() else c for c in text)
     opaque = []
     def remove(match):
         value = match.group(0)
+        if match.lastgroup == 'number':
+            # Parse numeric expressions together with any preceding sign below.
+            return value
         if match.lastgroup == 'url':
             value = value.rstrip('.,;!?।)')
         opaque.append(value)
         return ' '
     remainder = ENTITY_PATTERN.sub(remove, text)
-    return Counter(opaque + re.findall(r'\d+(?:[.,:/+\-]\d+)*%?', remainder))
+    # Digits inside URLs/handles are literal identifier characters, not numbers.
+    remainder = ''.join(str(unicodedata.decimal(c)) if c.isdecimal() else c for c in remainder)
+    remainder = remainder.replace('\u2212', '-')
+    numbers = re.findall(r'[+\-]?(?:\d+(?:[.,:/+\\\-]\d+)*|[.,]\d+)%?', remainder)
+    return Counter(opaque + numbers)
 
 
 def validate_candidate(candidate, original, source_language, target_language):
@@ -82,6 +88,8 @@ def validate_candidate(candidate, original, source_language, target_language):
         raise ValueError('Roman output changed an identifier or number')
     if not EnglishGloss(english_meaning=candidate.english_meaning).english_meaning:
         raise ValueError('Invalid English meaning')
+    if protected_values(candidate.english_meaning) != protected_values(original):
+        raise ValueError('English meaning changed an identifier or number')
     if candidate.assessment == 'ambiguous':
         if not candidate.meaning_note or len(candidate.meaning_alternatives) < 2:
             raise ValueError('Ambiguous output must expose distinct interpretations')
@@ -158,8 +166,10 @@ class ContextualTranslator:
                         'and code mixing using the entire sentence, not isolated token substitutions. '
                         'source_native must represent the original in source_language script without silently '
                         'changing intent. Preserve negation, tense, modality, person, names, conditionals and clauses. '
-                        'Preserve all URLs, emails, handles, identifiers and numerals exactly (Indic digit equivalents '
-                        'are acceptable). Never invent context or expand a short ambiguous sentence with an obligation '
+                        'Preserve all URLs, emails, handles and identifiers exactly in every output, including English. '
+                        'Preserve numeric values, signs and numeric notation; do not spell numerals out as words. '
+                        'Indic digit equivalents are acceptable outside opaque identifiers. '
+                        'Never invent context or expand a short ambiguous sentence with an obligation '
                         'or desire that it does not establish. When multiple materially different readings remain, '
                         'set assessment=ambiguous, explain uncertainty in a short English meaning_note, select a '
                         'reasonable reading and offer 2-3 explicit source-language rephrasings with English labels. '

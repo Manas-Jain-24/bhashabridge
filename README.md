@@ -5,6 +5,8 @@ BhashaBridge helps Hindi, Marathi and Bengali learners move between Roman spelli
 
 Translation now offers **Hybrid (local + Gemini)** and **Local model** modes. Hybrid preserves the original input alongside the spelling estimate and local draft, handles sentence meaning and ambiguity in one contextual response, and labels provider failures when falling back locally. The earlier sentence-specific learning override has been removed. See the [root-cause diagnosis, architecture and runtime diagnostics](docs/TRANSLATION_PIPELINE.md); model assistance is not a correctness guarantee.
 
+See the [12 November bug audit](docs/QA_2026-11-12.md) for reproduced defects, fixes, test evidence, and remaining limits. The [development roadmap](docs/ROADMAP.md) prioritizes reviewed evaluation, targeted accuracy improvements, repeatable browser checks, and multi-user readiness before further language expansion.
+
 
 ## Multilingual games and expanded data
 

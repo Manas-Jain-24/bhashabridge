@@ -11,8 +11,13 @@ from app.services.explanation.bilingual_aligner import align_sentence_vocabulary
 from app.services.explanation.learner_traps import detect_learner_traps, analyze_formality_and_context
 from app.services.explanation.legacy_backup.engine_legacy import HybridExplanationEngine as LegacyExplanationEngine
 from app.services.explanation.llm_tutor import llm_tutor
+from app.services.transliteration.service import transliteration_service
 
 logger = logging.getLogger(__name__)
+
+
+def _sentence_key(text):
+    return ' '.join(text.split()).rstrip('।.').strip()
 
 class HybridExplanationEngine(BaseExplanationService):
     """
@@ -204,6 +209,21 @@ class HybridExplanationEngine(BaseExplanationService):
                 target_language=target_language,
                 use_tutor=use_tutor,
             )
+            # Rule patterns and stored examples are authored Hindi -> Marathi.
+            # Orient their fields for the actual request without mutating caches.
+            if source_language == 'marathi':
+                result['grammar_points'] = [
+                    {**point, 'source_pattern': point.get('target_pattern'),
+                     'target_pattern': point.get('source_pattern')}
+                    for point in result['grammar_points']
+                ]
+                result['examples'] = [
+                    {**example, 'source_sentence': example['target_sentence'],
+                     'target_sentence': example['source_sentence'],
+                     'target_roman': transliteration_service.transliterate(
+                         example['source_sentence'], language='hindi', direction='native_to_latin')}
+                    for example in result['examples']
+                ]
         except Exception as e:
             logger.warning(f"Enhanced explanation failed ({e}); falling back to preserved legacy engine.")
             result = self._legacy_engine.explain(
@@ -224,11 +244,11 @@ class HybridExplanationEngine(BaseExplanationService):
         target_language: str,
         use_tutor: bool = True,
     ) -> Dict[str, Any]:
-        combined_text = f"{source_text.lower()} {target_text.lower()}"
-
-        # 1. Check flagship Knowledge Base entry
+        # 1. Sentence-specific teaching material must match the complete pair.
         for key, entry in self.EXPLANATION_KB.items():
-            if any(t.lower() in combined_text for t in entry["triggers"]):
+            if (source_language == 'hindi'
+                    and _sentence_key(source_text) == _sentence_key(' '.join(v.source_word for v in entry['vocabulary']))
+                    and _sentence_key(target_text) == _sentence_key(' '.join(v.target_word for v in entry['vocabulary']))):
                 return {
                     "summary": entry["summary"],
                     "word_explanations": [v.model_dump() for v in entry["vocabulary"]],
@@ -238,21 +258,22 @@ class HybridExplanationEngine(BaseExplanationService):
                     "examples": [e.model_dump() for e in entry["examples"]]
                 }
 
-        # 2. Check exact/substring match in educational dataset
-        clean_src = source_text.strip(".,!?:;\"'()[]{}।")
+        # 2. Match both sides in the requested direction, never a substring.
         for item in self._dataset_cache:
-            if clean_src in item["hindi_devanagari"] or clean_src in item["marathi_devanagari"] or clean_src in item["hindi_roman"] or clean_src in item["marathi_roman"]:
+            if (_sentence_key(source_text) == _sentence_key(item[f'{source_language}_devanagari'])
+                    and _sentence_key(target_text) == _sentence_key(item[f'{target_language}_devanagari'])):
                 vocab_list = [
                     {
-                        "source_word": v["hindi"],
-                        "target_word": v["marathi"],
-                        "target_roman": v.get("meaning", ""),
+                        "source_word": v[source_language],
+                        "target_word": v[target_language],
+                        "target_roman": transliteration_service.transliterate(
+                            v[target_language], language=target_language, direction='native_to_latin'),
                         "meaning": v["meaning"],
                         "part_of_speech": "aligned_term",
                         "is_construction_based": True,
                         "morph_analysis": v.get("morph_analysis") or v.get("bridge_note") or f"Case=Aligned | Term={v['marathi']}",
                         "gender_contrast": v.get("gender_contrast") or v.get("gender_info"),
-                        "root_lemma": v.get("root_lemma") or v.get("marathi")
+                        "root_lemma": v.get("root_lemma") if target_language == 'marathi' else v['hindi']
                     } for v in item.get("vocabulary", [])
                 ]
 
@@ -282,7 +303,7 @@ class HybridExplanationEngine(BaseExplanationService):
                     ],
                     "differences": [
                         item.get("context_note", "Standard structural divergence."),
-                        f"Tone: {item.get('formality', 'natural')} conversation in Marathi."
+                        f"Tone: {item.get('formality', 'natural')} conversation in {target_language.capitalize()}."
                     ],
                     "common_mistakes": item.get("common_mistakes", []),
                     "examples": topic_examples

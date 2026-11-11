@@ -112,10 +112,14 @@ assisted output before provider failure/cooldown. These are availability counts,
 not correctness scores. The assisted longer Hindi sentence recovered `समय` and
 translated it as `সময়`; the local Roman path had used `সামঞ্জস্য` instead.
 
-Validation: **244 backend tests passed**, TypeScript and production build passed,
+Initial implementation validation: **244 backend tests passed**, TypeScript and production build passed,
 and the browser showed the mode selector and visible provider fallback at desktop
 and 390-pixel mobile width, with no console errors or horizontal overflow. Human
 bilingual quality review and contextual Bengali-source evaluation remain pending.
+
+The [12 November bug audit](QA_2026-11-12.md) adds subsequent regression evidence
+and fixes for numeric/English fidelity guards, language-aware normalization,
+explanation matching and direction, Indic word boundaries, and mobile input.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/diagnose_translation_pipeline.py --output output/local-diagnostic.json --local-only

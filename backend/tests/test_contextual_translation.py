@@ -118,6 +118,53 @@ def test_protected_tokens_preserve_case_and_indic_numeral_equivalence():
     assert protected_values('7 https://example.org/Team') != protected_values('7 https://example.org/team')
 
 
+@pytest.mark.parametrize('original, changed', [
+    ('-7', '7'), ('+7', '-7'), ('.5', '5'),
+    ('https://example.org/৭', 'https://example.org/7'),
+    ('@user৭', '@user7'),
+])
+def test_protected_values_do_not_erase_signs_or_rewrite_opaque_identifiers(original, changed):
+    assert protected_values(original) != protected_values(changed)
+
+
+@pytest.mark.parametrize('meaning', ['I want 8 books.', 'I want books.',
+                                    'I want 7 books. Contact @SomeoneElse.'])
+def test_english_meaning_cannot_change_or_drop_protected_values(meaning):
+    value = candidate(source_native='मुझे 7 किताबें चाहिए।',
+                      translation_native='আমার ৭টি বই চাই।',
+                      translation_roman='amar 7ti boi chai.', english_meaning=meaning,
+                      assessment='equivalent', meaning_note=None, meaning_alternatives=[])
+    with pytest.raises(ValueError, match='English'):
+        validate_candidate(value, 'Mujhe 7 kitabein chahiye.', 'hindi', 'bengali')
+
+
+def test_numeric_equivalents_are_allowed_in_all_candidate_views():
+    value = candidate(source_native='मुझे ७ किताबें चाहिए।',
+                      translation_native='আমার ৭টি বই চাই।',
+                      translation_roman='amar 7ti boi chai.', english_meaning='I want 7 books.',
+                      assessment='equivalent', meaning_note=None, meaning_alternatives=[])
+    assert validate_candidate(value, 'Mujhe 7 kitabein chahiye.', 'hindi', 'bengali') is value
+
+
+def test_auto_bengali_does_not_apply_hindi_slang_normalization(client, monkeypatch):
+    from app.api.routes import analyze
+    seen = []
+    original = 'আমি jana চাই'
+    def transliterate(text, **kwargs):
+        seen.append(text)
+        return text
+    monkeypatch.setattr(analyze.transliteration_service, 'transliterate', transliterate)
+    monkeypatch.setattr(analyze, 'translate_with_memory', lambda *args, **kwargs: draft(
+        translation='मैं जानना चाहता हूँ।', translation_native='मैं जानना चाहता हूँ।',
+        translation_roman='main jaanna chahta hoon.', _skip_tutor=True))
+    response = client.post('/api/analyze', json={'text': original, 'source_language': 'auto',
+                                               'target_language': 'hindi', 'translation_mode': 'local'})
+    assert response.status_code == 200
+    assert response.json()['detected_language'] == 'bengali'
+    assert response.json()['normalized_text'] == original
+    assert seen[0] == original
+
+
 @pytest.mark.parametrize('changed', ['मैं 8 किताबें चाहता हूँ।', 'मैं 7 किताबें चाहता हूँ। https://example.org/team'])
 def test_identifiers_and_numbers_cannot_be_lost_or_changed(changed):
     value = candidate(source_native=changed)

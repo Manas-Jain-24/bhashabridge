@@ -297,9 +297,9 @@ export default function App() {
 
               {/* Transliteration badge preview */}
               {transliterationPreview && (
-                <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs bg-slate-900/90 border border-indigo-500/30 px-3 py-1 rounded-lg backdrop-blur-md">
-                  <span className="text-slate-400 font-mono">Spelling estimate:</span>
-                  <span className="text-indigo-300 font-devanagari font-bold">{transliterationPreview}</span>
+                <div className="mt-2 flex flex-wrap items-start gap-2 text-xs bg-slate-900/90 border border-indigo-500/30 px-3 py-2 rounded-lg">
+                  <span className="text-slate-400 font-mono shrink-0">Spelling estimate:</span>
+                  <span className="min-w-0 break-words [overflow-wrap:anywhere] text-indigo-300 font-devanagari font-bold">{transliterationPreview}</span>
                 </div>
               )}
             </div>

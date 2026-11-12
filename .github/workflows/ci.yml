@@ -16,6 +16,7 @@ jobs:
       - run: python -m pytest backend/tests -q
       - run: python scripts/check_corpus_leakage.py
       - run: python scripts/check_expanded_data.py
+      - run: python scripts/check_language_readiness.py
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -30,3 +31,16 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: pip install -r backend/requirements-core.txt
+        working-directory: .
+      - run: npx playwright install --with-deps chromium --only-shell
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: output/playwright/ci-*
+          retention-days: 7

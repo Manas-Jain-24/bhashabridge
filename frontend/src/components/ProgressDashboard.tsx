@@ -1,3 +1,4 @@
+import {useDialog} from '../utils/useDialog';
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ProgressData, MilestoneRoadmapItem, BridgeLevel } from '../types';
@@ -27,6 +28,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   onClose,
   onBridgeLevelChange,
 }) => {
+  const dialogRef=useDialog(isOpen);
   const [data, setData] = useState<ProgressData | null>(null);
   const [milestones, setMilestones] = useState<MilestoneRoadmapItem[]>([]);
   const [activeTab, setActiveTab] = useState<'proficiency' | 'roadmap'>('proficiency');
@@ -86,6 +88,8 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Learner Milestones and Proficiency Dashboard"

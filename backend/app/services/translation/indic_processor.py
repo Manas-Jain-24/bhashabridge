@@ -10,6 +10,7 @@ from indicnlp.tokenize import indic_tokenize, indic_detokenize
 from indicnlp.transliterate.unicode_transliterate import UnicodeIndicTransliterator
 import re
 import unicodedata
+from collections import Counter
 
 
 from app.core.languages import LANGUAGES
@@ -21,10 +22,10 @@ class EntityPreservationError(ValueError):
 
 
 class IndicScriptProcessor:
-    VERSION = 'windows-entities-v2'
+    VERSION = 'windows-entities-v3'
     CODES = {spec["flores"]: spec["iso"] for spec in LANGUAGES.values()}
     ENTITY = ENTITY_PATTERN
-    MARKER = re.compile(r'[<\[]\s*(?:id|आई\s*\.?\s*डी\.?|आयडी|आइडी)\s*(\d+)\s*[>\]]', re.IGNORECASE)
+    MARKER = re.compile(r'[<\[]\s*(?:id|आ[ईइय]\s*\.?\s*ड[ीि]\.?)\s*(\d+)\s*[>\]]', re.IGNORECASE)
 
     def __init__(self, inference=True):
         self.inference = inference
@@ -54,7 +55,6 @@ class IndicScriptProcessor:
             def protect(match):
                 nonlocal serial
                 value = match.group(0)
-                if match.lastgroup=='number' and len(re.sub(r'[ .:]', '', value))<4: return value
                 serial += 1
                 while serial in reserved: serial += 1
                 # Sentence punctuation is not part of an URL.
@@ -83,6 +83,11 @@ class IndicScriptProcessor:
         results = []
         for index,text in enumerate(texts):
             entities = maps[index] if maps else {}
+            # Every protected occurrence must have exactly one generated anchor.
+            # A duplicated/dropped marker must not silently duplicate/drop a value.
+            actual = Counter(int(m.group(1)) for m in self.MARKER.finditer(text))
+            if entities and actual != Counter({key:1 for key in entities}):
+                raise EntityPreservationError('Translation changed protected entity occurrences')
             # Canonicalize known vernacular marker variants before changing script.
             text = self.MARKER.sub(lambda m:f'<ID{int(m.group(1))}>' if int(m.group(1)) in entities else m.group(0),text)
             restored = self._transliterator.transliterate(text, "hi", target)

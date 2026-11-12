@@ -250,3 +250,67 @@ class ArcadeReview(Base):
     mistakes = Column(Integer, default=0, nullable=False)
     due_at = Column(DateTime, nullable=False, index=True)
     updated_at = Column(DateTime, nullable=False)
+
+
+class AccountCredential(Base):
+    __tablename__ = 'account_credentials'
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    password_hash = Column(Text, nullable=False)
+    role = Column(String(20), nullable=False, default='learner')
+
+
+class AuthSession(Base):
+    __tablename__ = 'auth_sessions'
+    token_hash = Column(String(64), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    csrf_hash = Column(String(64), nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+
+
+class UsageCounter(Base):
+    __tablename__ = 'usage_counters'
+    key = Column(String(160), primary_key=True)
+    count = Column(Integer, nullable=False, default=0)
+    expires_at = Column(DateTime, nullable=False, index=True)
+
+
+class CorrectionReport(Base):
+    __tablename__ = 'correction_reports'
+    id = Column(String(36), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    source_language = Column(String(20), nullable=False)
+    target_language = Column(String(20), nullable=False)
+    source_text = Column(Text, nullable=False)
+    observed_target = Column(Text, nullable=False)
+    proposed_target = Column(Text, nullable=True)
+    proposed_roman = Column(Text, nullable=True)
+    proposed_english = Column(Text, nullable=True)
+    category = Column(String(40), nullable=False)
+    purpose = Column(String(20), nullable=False, default='runtime')
+    evaluation_id = Column(String(120), nullable=True, unique=True)
+    note = Column(Text, nullable=False, default='')
+    status = Column(String(20), nullable=False, default='reported', index=True)
+    provenance = Column(Text, nullable=False)
+    license = Column(String(120), nullable=False)
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
+
+
+class CorrectionEvent(Base):
+    __tablename__ = 'correction_events'
+    id = Column(Integer, primary_key=True)
+    report_id = Column(String(36), ForeignKey('correction_reports.id'), nullable=False, index=True)
+    actor_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    action = Column(String(20), nullable=False)
+    snapshot_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+
+
+class PracticeIssue(Base):
+    __tablename__ = 'practice_issues'
+    __table_args__ = (UniqueConstraint('user_id', 'question_key'),)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    question_key = Column(String(80), nullable=False)
+    issued_at = Column(DateTime, nullable=False, default=utc_now)

@@ -8,3 +8,5 @@ data/curated/translation_corrections_v1.jsonl -text whitespace=blank-at-eol,blan
 ml/experiments/bengali-v1/vocab.json -text
 ml/models/bengali-v1/vocab.json -text
 *.pt -text
+data/quality/evaluation-draft-v1/** -text
+data/quality/reports/** -text

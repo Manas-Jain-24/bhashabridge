@@ -10,6 +10,7 @@ from app.services.translation.memory import lookup_reviewed
 from app.services.translation.contextual import contextual_translator, candidate_explanation
 from app.services.transliteration.service import transliteration_service
 from app.services.language_detection.detector import language_detector
+from app.services.runtime import stage
 
 def get_translation_service() -> BaseTranslationService:
     """
@@ -33,24 +34,28 @@ def translate_with_memory(db, text: str, source_language: str, target_language: 
     mode = translation_mode or settings.TRANSLATION_MODE
     if mode not in ('local', 'hybrid'):
         raise ValueError('Unsupported translation mode')
-    reviewed = lookup_reviewed(db, text, source_language, target_language, script)
+    with stage('memory'):
+        reviewed = lookup_reviewed(db, text, source_language, target_language, script)
     if reviewed is not None:
         return {**reviewed, 'context_status': 'reviewed', '_skip_tutor': mode == 'local'}
     if native_text is None:
         normalized = ' '.join(text.split()) if source_language == 'bengali' else language_detector.normalize(text)
-        native_text = transliteration_service.transliterate(normalized, language=source_language, direction='latin_to_native')
+        with stage('transliteration'):
+            native_text = transliteration_service.transliterate(normalized, language=source_language, direction='latin_to_native')
     engine = translation_service if rule_pair(source_language, target_language) else indictrans2_adapter
     draft = None
     local_error = None
     try:
-        draft = engine.translate(text=native_text, source_language=source_language,
+        with stage('local_translation'):
+            draft = engine.translate(text=native_text, source_language=source_language,
                                  target_language=target_language, script=script)
     except HTTPException as exc:
         if exc.status_code != 503 or mode == 'local':
             raise
         local_error = exc
     if mode == 'hybrid':
-        candidate, status = contextual_translator.refine(text, native_text, source_language, target_language, draft)
+        with stage('context'):
+            candidate, status = contextual_translator.refine(text, native_text, source_language, target_language, draft)
         if candidate is not None:
             return {
                 'source_text': text, 'source_language': source_language, 'target_language': target_language,

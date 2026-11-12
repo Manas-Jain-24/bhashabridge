@@ -36,7 +36,9 @@ export class SpeechEngine {
     rate: number = 0.85,
     onEnd?: () => void
   ) {
-    if (!this.synth) { onEnd?.(); return; }
+    const unavailable=()=>window.dispatchEvent(new CustomEvent('bhashabridge:speech-error', {detail:'Audio is unavailable in this browser. You can still use the native and Roman text.'}));
+    if (!this.synth) { unavailable(); onEnd?.(); return; }
+    this.loadVoices();
 
     this.synth.cancel(); // Stop any overlapping speech
 
@@ -57,6 +59,9 @@ export class SpeechEngine {
 
     if (matchingVoice) {
       utterance.voice = matchingVoice;
+    } else {
+      this.isSpeaking = false;
+      unavailable(); onEnd?.(); return;
     }
 
     utterance.onstart = () => {
@@ -70,6 +75,7 @@ export class SpeechEngine {
 
     utterance.onerror = () => {
       this.isSpeaking = false;
+      unavailable();
       if (onEnd) onEnd();
     };
 

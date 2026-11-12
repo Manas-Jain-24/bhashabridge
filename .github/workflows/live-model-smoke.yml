@@ -1,0 +1,34 @@
+name: Optional live provider smoke
+on:
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: 'Maximum Gemini calls (1–6); no retries'
+        required: true
+        default: '3'
+permissions:
+  contents: read
+concurrency:
+  group: live-provider-smoke
+  cancel-in-progress: false
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: pip install -r backend/requirements-core.txt
+      - name: Run bounded provider probe
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MAX_CALLS: ${{ inputs.max_calls }}
+        run: python scripts/live_provider_smoke.py --max-calls "$MAX_CALLS" --output output/live-provider-smoke.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: live-provider-smoke
+          path: output/live-provider-smoke.json
+          retention-days: 14

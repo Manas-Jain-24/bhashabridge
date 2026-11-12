@@ -8,11 +8,18 @@ from app.services.transliteration.service import transliteration_service
 from app.services.translation.service import translate_with_memory
 from app.services.explanation.engine import explanation_engine
 from app.services.translation.english import with_english_meaning
+from app.core.auth import current_user, Identity
+from app.services.runtime import run_inference, stage
 
 router = APIRouter()
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
+async def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
+    return await run_inference(lambda session: analyze_sync(request, session), db, user.id,
+                               'analyze', request.source_language, request.target_language)
+
+
+def analyze_sync(request: AnalyzeRequest, db: Session):
     """
     Principle 1 Implementation:
     INPUT -> Language/script detection -> Transliteration -> Translation
@@ -38,12 +45,13 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
         target_lang = "hindi" if detected_language == "marathi" else "marathi"
 
     # Convert Roman tokens even when the input also contains native characters.
-    native_source = transliteration_service.transliterate(
-        normalized, language=detected_language, direction="latin_to_native"
-    )
-    roman_source = normalized if detected_script == "latin" else transliteration_service.transliterate(
-        normalized, language=detected_language, direction="native_to_latin"
-    )
+    with stage('source_transliteration'):
+        native_source = transliteration_service.transliterate(
+            normalized, language=detected_language, direction="latin_to_native"
+        )
+        roman_source = normalized if detected_script == "latin" else transliteration_service.transliterate(
+            normalized, language=detected_language, direction="native_to_latin"
+        )
 
     # Translate
     trans_result = translate_with_memory(db,
@@ -58,13 +66,14 @@ def analyze_text(request: AnalyzeRequest, db: Session = Depends(get_db)):
     # Reuse the same contextual interpretation instead of generating a second,
     # potentially contradictory grammar story for the guessed spelling.
     native_source = trans_result.get('source_native', native_source)
-    explanation_result = trans_result.get('_explanation') or explanation_engine.explain(
-        source_text=native_source,
-        source_language=detected_language,
-        target_text=trans_result["translation_native"],
-        target_language=target_lang,
-        use_tutor=not trans_result.get('_skip_tutor', False),
-    )
+    with stage('explanation'):
+        explanation_result = trans_result.get('_explanation') or explanation_engine.explain(
+            source_text=native_source,
+            source_language=detected_language,
+            target_text=trans_result["translation_native"],
+            target_language=target_lang,
+            use_tutor=not trans_result.get('_skip_tutor', False),
+        )
 
     trans_result=with_english_meaning({**trans_result,'target_language':target_lang},explanation_result)
     return AnalyzeResponse(

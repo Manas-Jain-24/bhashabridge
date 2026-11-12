@@ -1,5 +1,11 @@
 # BhashaBridge development roadmap
 
+Implementation status: the [automated work report](ROADMAP_IMPLEMENTATION.md)
+tracks the evaluation harness, correction workflow, account isolation, browser CI,
+observability and restore tools. The newly authored evaluation set remains draft.
+Human quality gates below are intentionally pending; automated checks do not
+replace bilingual review or establish public-deployment readiness.
+
 The strongest engineering direction is a measurable language-learning system
 whose translation, spelling, explanations, and learning progress can be evaluated
 separately. Keep the current Hindi, Marathi, and Bengali scope while improving

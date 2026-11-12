@@ -1,3 +1,4 @@
+from app.core.auth import current_user, Identity
 from typing import Literal, Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -24,23 +25,23 @@ class GameAnswer(BaseModel):
     tile_ids: Optional[list[int]] = Field(default=None, max_length=40)
 
 @router.get("/arcade/stats/{language}")
-def game_stats(language: Language, db: Session = Depends(get_db)):
-    return arcade.stats(db, language)
+def game_stats(language: Language, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
+    return arcade.stats(db, language, user_id=user.id)
 
 @router.post("/arcade/start")
-def start_game(request: StartGame, db: Session = Depends(get_db)):
-    return arcade.start_session(db, request.language, request.mode,request.difficulty,request.topic,request.practice,request.lesson_id)
+def start_game(request: StartGame, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
+    return arcade.start_session(db, request.language, request.mode,request.difficulty,request.topic,request.practice,request.lesson_id,user_id=user.id)
 
 @router.get('/arcade/lessons/{language}')
 def lessons(language: Language):
     return course(language)
 
 @router.get("/arcade/session/{session_id}")
-def get_game(session_id: str, db: Session = Depends(get_db)):
-    session = arcade.get_session(db, session_id)
+def get_game(session_id: str, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
+    session = arcade.get_session(db, session_id, user_id=user.id)
     import json
     return arcade.session_view(session, json.loads(session.state_json))
 
 @router.post("/arcade/answer")
-def game_answer(request: GameAnswer, db: Session = Depends(get_db)):
-    return arcade.submit_answer(db, request)
+def game_answer(request: GameAnswer, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
+    return arcade.submit_answer(db, request, user_id=user.id)

@@ -1,4 +1,5 @@
 import { MultilingualArcade } from './components/learn/MultilingualArcade';
+import { CorrectionQueue } from './components/CorrectionQueue';
 import { languages, languageEntries } from './config/languages';
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
@@ -22,6 +23,8 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const [queueOpen,setQueueOpen]=useState(false);
+  const [reportDraft,setReportDraft]=useState<{source_language:string;target_language:string;source_text:string;observed_target:string}|null>(null);
   const [learnMode, setLearnMode] = useState<'arcade' | 'course'>('arcade');
   const [currentView, setCurrentView] = useState<'translate' | 'learn'>('translate');
   const [sourceLang, setSourceLang] = useState<Language>('hindi');
@@ -178,6 +181,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="flex justify-end"><button className="text-sm text-indigo-300 underline" onClick={()=>{setReportDraft(null);setQueueOpen(true);}}>Correction queue</button></div>
         {currentView === 'learn' ? (
           <div className="w-full space-y-5">
             <div className="flex flex-wrap gap-3"><button onClick={()=>setLearnMode('arcade')} className={`rounded-xl px-5 py-3 border ${learnMode==='arcade' ? 'bg-indigo-600 border-indigo-400' : 'border-slate-700'}`}>Multilingual Arcade</button><button onClick={()=>setLearnMode('course')} className={`rounded-xl px-5 py-3 border ${learnMode==='course' ? 'bg-indigo-600 border-indigo-400' : 'border-slate-700'}`}>Marathi Course</button></div>
@@ -212,7 +216,7 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-3">
               {/* Source Lang */}
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase font-semibold text-slate-400">I speak</span>
+                <label htmlFor="source-language-select" className="text-xs uppercase font-semibold text-slate-400">I speak</label>
                 <div className="relative">
                   <select
                     id="source-language-select"
@@ -238,7 +242,7 @@ export default function App() {
 
               {/* Target Lang */}
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase font-semibold text-slate-400">I want to learn</span>
+                <label htmlFor="target-language-select" className="text-xs uppercase font-semibold text-slate-400">I want to learn</label>
                 <div className="relative">
                   <select
                     id="target-language-select"
@@ -255,7 +259,7 @@ export default function App() {
 
             {/* Script Selector */}
             <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-semibold text-slate-400">Script</span>
+              <label htmlFor="script-select" className="text-xs uppercase font-semibold text-slate-400">Script</label>
               <div className="relative">
                 <select
                   id="script-select"
@@ -288,6 +292,8 @@ export default function App() {
             <div className="relative">
               <textarea
                 id="main-sentence-input"
+                aria-label="Sentence to translate"
+                maxLength={2000}
                 rows={3}
                 value={inputText}
                 onChange={handleInputChange}
@@ -399,6 +405,11 @@ export default function App() {
               }}
             />
 
+            <button className="text-sm text-amber-200 underline" onClick={()=>{
+              setReportDraft({source_language:analysisResult.detected_language,target_language:analysisResult.target_language,
+                source_text:inputText,observed_target:analysisResult.translation_native});setQueueOpen(true);
+            }}>Report a translation issue</button>
+
             {/* Learn from this sentence Vocabulary Table */}
             <VocabularyTable
               vocabulary={analysisResult.vocabulary}
@@ -410,6 +421,7 @@ export default function App() {
           </>
         )}
       </main>
+      {queueOpen&&<CorrectionQueue initial={reportDraft} onClose={()=>setQueueOpen(false)}/>}
 
       {/* Slide-over Explanation Drawer */}
       <ExplanationDrawer

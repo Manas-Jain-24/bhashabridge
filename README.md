@@ -7,6 +7,12 @@ Translation now offers **Hybrid (local + Gemini)** and **Local model** modes. Hy
 
 See the [12 November bug audit](docs/QA_2026-11-12.md) for reproduced defects, fixes, test evidence, and remaining limits. The [development roadmap](docs/ROADMAP.md) prioritizes reviewed evaluation, targeted accuracy improvements, repeatable browser checks, and multi-user readiness before further language expansion.
 
+The [automated roadmap implementation](docs/ROADMAP_IMPLEMENTATION.md) adds a frozen
+600-request diagnostic set, an audited correction queue, account isolation,
+browser CI, provider budgets, runtime deadlines, migrations and backup/restore
+tools. All new evaluation references remain **unreviewed**. See the
+[evaluation protocol](data/quality/README.md) and [operations guide](docs/OPERATIONS.md).
+
 
 ## Multilingual games and expanded data
 
@@ -30,9 +36,13 @@ Bengali is available for neural translation with Hindi and Marathi, including na
 
 Language metadata is shared between the API and UI in `shared/languages.json`. See [adding languages](docs/ADDING_LANGUAGES.md) for architecture, capabilities, setup, tests, and limitations. Native-script API requests can use `script="native"`; legacy `devanagari` mode and transliteration direction names remain compatible.
 
-## Current working baseline (24 October 2026)
+## Running the project
 
-This is a **local, single-learner prototype**. The backend launcher binds to localhost. There is no account authentication; do not expose it as a shared public service. Neural models and the Gemini tutor are optional. The rule fallback supports curated lessons, but its general translation quality is limited.
+The default is a **local workspace** restricted to loopback. Set `AUTH_MODE=accounts`
+to use separate learner accounts. Public deployment additionally requires HTTPS,
+secure cookies, a same-origin API proxy and the [deployment checks](docs/OPERATIONS.md).
+The backend launcher binds to localhost. Neural models and Gemini are optional;
+the rule fallback's general translation quality remains limited.
 
 The evaluation pipeline now excludes held-out source sentences from runtime lookup and training indexes. The previous near-perfect translation report was contaminated by lookup overlap and is retained only as `ml/evaluation/translation_eval_report_legacy_leaked.json`, explicitly marked invalid. See the current report for measured results and reference-alignment limitations.
 

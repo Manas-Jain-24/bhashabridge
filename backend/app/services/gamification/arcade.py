@@ -93,12 +93,12 @@ def session_view(session, state):
             "question": None if done or index >= len(state["questions"]) else public_question(state["questions"][index], session.mode)}
 
 
-def due_reviews(db, language, mode, difficulty):
-    rows = db.query(ArcadeReview).filter_by(user_id=1, language=language, mode=mode).filter(ArcadeReview.due_at<=now_utc()).order_by(ArcadeReview.due_at,ArcadeReview.id).all()
+def due_reviews(db, language, mode, difficulty, user_id=1):
+    rows = db.query(ArcadeReview).filter_by(user_id=user_id, language=language, mode=mode).filter(ArcadeReview.due_at<=now_utc()).order_by(ArcadeReview.due_at,ArcadeReview.id).all()
     return [json.loads(r.question_json) for r in rows if json.loads(r.question_json).get('difficulty','advanced')==difficulty]
 
 
-def start_session(db, language, mode, difficulty='advanced', topic='all', practice='mixed', lesson_id=None):
+def start_session(db, language, mode, difficulty='advanced', topic='all', practice='mixed', lesson_id=None, user_id=1):
     limit = 60 if mode == 'sprint' else 10
     if lesson_id:
         if mode!='meaning': raise HTTPException(422,'Lesson practice uses sentence matching')
@@ -106,7 +106,7 @@ def start_session(db, language, mode, difficulty='advanced', topic='all', practi
         questions = make_questions(language,mode,len(entries),difficulty='beginner',entries=entries,distractors=distractors)
         difficulty='beginner'
     else:
-        due = due_reviews(db,language,mode,difficulty) if practice!='new' else []
+        due = due_reviews(db,language,mode,difficulty,user_id=user_id) if practice!='new' else []
         if practice=='review':
             questions=due[:limit]
             if not questions: raise HTTPException(409,'Nothing is due in this language, mode and difficulty. Try a new round.')
@@ -118,7 +118,7 @@ def start_session(db, language, mode, difficulty='advanced', topic='all', practi
             questions=(selected+[q for q in questions if q['record'] not in known])[:limit]
     if not questions: raise HTTPException(503, "No unambiguous questions are available.")
     now = now_utc()
-    session = ArcadeSession(id=str(uuid.uuid4()), user_id=1, language=language, mode=mode,
+    session = ArcadeSession(id=str(uuid.uuid4()), user_id=user_id, language=language, mode=mode,
         state_json=json.dumps({"questions": questions, "last": None, 'difficulty':difficulty,'practice':practice,'lesson_id':lesson_id}, ensure_ascii=False),
         score=0, correct_count=0, answer_count=0, started_at=now,
         expires_at=now + timedelta(seconds=60 if mode == "sprint" else 900))
@@ -127,10 +127,11 @@ def start_session(db, language, mode, difficulty='advanced', topic='all', practi
 
 
 def update_review(db, session, question, correct):
-    review=db.query(ArcadeReview).filter_by(user_id=1,language=session.language,mode=session.mode,record=question['record']).first()
+    user_id = session.user_id
+    review=db.query(ArcadeReview).filter_by(user_id=user_id,language=session.language,mode=session.mode,record=question['record']).first()
     now=now_utc()
     if review is None:
-        review=ArcadeReview(user_id=1,language=session.language,mode=session.mode,record=question['record'],
+        review=ArcadeReview(user_id=user_id,language=session.language,mode=session.mode,record=question['record'],
             question_json=json.dumps(question,ensure_ascii=False),correct_streak=0,mistakes=0,due_at=now,updated_at=now)
         db.add(review)
     if correct:
@@ -141,14 +142,14 @@ def update_review(db, session, question, correct):
     review.updated_at=now
 
 
-def get_session(db, session_id):
-    session = db.query(ArcadeSession).filter_by(id=session_id, user_id=1).with_for_update().first()
+def get_session(db, session_id, user_id=1):
+    session = db.query(ArcadeSession).filter_by(id=session_id, user_id=user_id).with_for_update().first()
     if session is None: raise HTTPException(404, "Game session not found.")
     return session
 
 
-def submit_answer(db, request):
-    session = get_session(db, request.session_id)
+def submit_answer(db, request, user_id=1):
+    session = get_session(db, request.session_id, user_id=user_id)
     state = json.loads(session.state_json)
     last = state.get("last")
     if last and last["question_id"] == request.question_id:
@@ -172,7 +173,7 @@ def submit_answer(db, request):
         update_review(db,session,question,correct)
         if correct:
             key = f"arcade:{session.language}:{session.mode}:{question['record']}:{now_utc().date()}"
-            if record_activity(db, key, "arcade_" + session.language, xp=5): xp = 5
+            if record_activity(db, key, "arcade_" + session.language, xp=5, user_id=user_id): xp = 5
             session.correct_count += 1
             session.score += 100
         session.answer_count += 1
@@ -180,7 +181,7 @@ def submit_answer(db, request):
             session.completed_at = now_utc()
         lesson_complete = bool(state.get('lesson_id') and session.answer_count==len(state['questions']) and session.correct_count>=math.ceil(len(state['questions'])*.8))
         completion_xp=0
-        if lesson_complete and record_activity(db,f"lesson_complete:{session.language}:{state['lesson_id']}",f'lesson_complete_{session.language}',xp=10):
+        if lesson_complete and record_activity(db,f"lesson_complete:{session.language}:{state['lesson_id']}",f'lesson_complete_{session.language}',xp=10,user_id=user_id):
             completion_xp=10
         state["last"] = {"question_id": question["id"], "correct": correct,
                           "reference": question["reference"], "roman": question["roman"], "xp_awarded": xp,
@@ -193,16 +194,16 @@ def submit_answer(db, request):
     return {**session_view(session, state), "feedback": state["last"]}
 
 
-def stats(db, language):
-    events = db.query(LearningActivity).filter_by(user_id=1, kind="arcade_" + language).all()
+def stats(db, language, user_id=1):
+    events = db.query(LearningActivity).filter_by(user_id=user_id, kind="arcade_" + language).all()
     xp = sum(e.xp_awarded for e in events)
-    best = db.query(func.max(ArcadeSession.score)).filter_by(user_id=1, language=language).scalar() or 0
-    reviews=db.query(ArcadeReview).filter_by(user_id=1,language=language).all()
+    best = db.query(func.max(ArcadeSession.score)).filter_by(user_id=user_id, language=language).scalar() or 0
+    reviews=db.query(ArcadeReview).filter_by(user_id=user_id,language=language).all()
     due={level:{mode:0 for mode in MODES} for level in ('beginner','intermediate','advanced')}
     for review in reviews:
         level=json.loads(review.question_json).get('difficulty','advanced')
         if review.due_at<=now_utc() and level in due and review.mode in due[level]: due[level][review.mode]+=1
-    completions=db.query(LearningActivity).filter_by(user_id=1,kind=f'lesson_complete_{language}').all()
+    completions=db.query(LearningActivity).filter_by(user_id=user_id,kind=f'lesson_complete_{language}').all()
     completed=[e.event_key.split(':',2)[2] for e in completions]
     xp+=sum(e.xp_awarded for e in completions)
     return {"language": language, "xp": xp, "level": 1 + xp // 100,

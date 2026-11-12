@@ -1,0 +1,767 @@
+{
+  "human_reviewed": false,
+  "accuracy_score": null,
+  "model_promotion": false,
+  "interpretation": "Observed structural regression results, not held-out semantic quality.",
+  "reports": [
+    {
+      "report": "local-runtime-2026-11-12.json",
+      "sha256": "f801788376a518e24e2e613cbc1df8b94b8b53ecae3b8cf86b542f9835bf2b77",
+      "complete": true,
+      "expected_requests": 600,
+      "directions": {
+        "hindi->marathi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "hindi->bengali": {
+          "requests": 100,
+          "responses": 90,
+          "errors_by_status": {
+            "503": 10
+          },
+          "error_categories": {
+            "numbers": 2,
+            "question": 2,
+            "url": 2,
+            "email": 2,
+            "handle": 2
+          },
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 90,
+            "explanation:unavailable": 90,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 90,
+            "error": 10
+          },
+          "context_status": {
+            "local_only": 90,
+            "error": 10
+          }
+        },
+        "marathi->hindi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "marathi->bengali": {
+          "requests": 100,
+          "responses": 90,
+          "errors_by_status": {
+            "503": 10
+          },
+          "error_categories": {
+            "numbers": 2,
+            "question": 2,
+            "url": 2,
+            "email": 2,
+            "handle": 2
+          },
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 90,
+            "explanation:unavailable": 90,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 90,
+            "error": 10
+          },
+          "context_status": {
+            "local_only": 90,
+            "error": 10
+          }
+        },
+        "bengali->hindi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "explanation:unavailable": 100,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "bengali->marathi": {
+          "requests": 100,
+          "responses": 98,
+          "errors_by_status": {
+            "503": 2
+          },
+          "error_categories": {
+            "numbers": 1,
+            "question": 1
+          },
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 98,
+            "explanation:unavailable": 98,
+            "translation_native:protected_value_failure": 4,
+            "translation_roman:protected_value_failure": 4
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 98,
+            "error": 2
+          },
+          "context_status": {
+            "local_only": 98,
+            "error": 2
+          }
+        }
+      },
+      "latency": {
+        "hindi->marathi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.281,
+          "p95_seconds": 0.433,
+          "draft_reference_exact_matches": 14,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->marathi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.474,
+          "p95_seconds": 0.664,
+          "draft_reference_exact_matches": 5,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->bengali:native_local": {
+          "attempted": 50,
+          "responses": 45,
+          "errors": {
+            "HTTPException": 5
+          },
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.276,
+          "p95_seconds": 0.465,
+          "draft_reference_exact_matches": 7,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->bengali:roman_local": {
+          "attempted": 50,
+          "responses": 45,
+          "errors": {
+            "HTTPException": 5
+          },
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.455,
+          "p95_seconds": 0.715,
+          "draft_reference_exact_matches": 2,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->hindi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.284,
+          "p95_seconds": 0.438,
+          "draft_reference_exact_matches": 5,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->hindi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.458,
+          "p95_seconds": 0.644,
+          "draft_reference_exact_matches": 3,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->bengali:native_local": {
+          "attempted": 50,
+          "responses": 45,
+          "errors": {
+            "HTTPException": 5
+          },
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.273,
+          "p95_seconds": 0.404,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->bengali:roman_local": {
+          "attempted": 50,
+          "responses": 45,
+          "errors": {
+            "HTTPException": 5
+          },
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.442,
+          "p95_seconds": 0.651,
+          "draft_reference_exact_matches": 1,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->hindi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.282,
+          "p95_seconds": 0.435,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->hindi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.324,
+          "p95_seconds": 0.463,
+          "draft_reference_exact_matches": 2,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->marathi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.254,
+          "p95_seconds": 0.385,
+          "draft_reference_exact_matches": 10,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->marathi:roman_local": {
+          "attempted": 50,
+          "responses": 48,
+          "errors": {
+            "HTTPException": 2
+          },
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 2,
+          "p50_seconds": 0.288,
+          "p95_seconds": 0.431,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        }
+      }
+    },
+    {
+      "report": "local-runtime-entities-v3-2026-11-12.json",
+      "sha256": "9d27f0a609e69de5396a2d51c969d18a749e1ba5f57eebd44cf27e2e2c4ff1b2",
+      "complete": true,
+      "expected_requests": 600,
+      "directions": {
+        "hindi->marathi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "hindi->bengali": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "explanation:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "marathi->hindi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "marathi->bengali": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "explanation:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "bengali->hindi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "explanation:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        },
+        "bengali->marathi": {
+          "requests": 100,
+          "responses": 100,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 100,
+            "explanation:unavailable": 100
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 100
+          },
+          "context_status": {
+            "local_only": 100
+          }
+        }
+      },
+      "latency": {
+        "hindi->marathi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.281,
+          "p95_seconds": 0.398,
+          "draft_reference_exact_matches": 16,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->marathi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.451,
+          "p95_seconds": 0.614,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->bengali:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.277,
+          "p95_seconds": 0.422,
+          "draft_reference_exact_matches": 9,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->bengali:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.467,
+          "p95_seconds": 0.592,
+          "draft_reference_exact_matches": 4,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->hindi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.284,
+          "p95_seconds": 0.405,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->hindi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.441,
+          "p95_seconds": 0.609,
+          "draft_reference_exact_matches": 3,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->bengali:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.273,
+          "p95_seconds": 0.373,
+          "draft_reference_exact_matches": 8,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->bengali:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.44,
+          "p95_seconds": 0.577,
+          "draft_reference_exact_matches": 2,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->hindi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.274,
+          "p95_seconds": 0.38,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->hindi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.323,
+          "p95_seconds": 0.444,
+          "draft_reference_exact_matches": 2,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->marathi:native_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.27,
+          "p95_seconds": 0.363,
+          "draft_reference_exact_matches": 10,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->marathi:roman_local": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 0,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.27,
+          "p95_seconds": 0.381,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        }
+      }
+    },
+    {
+      "report": "hybrid-budgeted-2026-11-12.json",
+      "sha256": "7ccde464ddbdcd06449764374c38c620b127efcb70cea0eff49a4e4af0c9514f",
+      "complete": true,
+      "expected_requests": 300,
+      "directions": {
+        "hindi->marathi": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 49
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 49,
+            "gemini-contextual": 1
+          },
+          "context_status": {
+            "unavailable": 49,
+            "assisted": 1
+          }
+        },
+        "hindi->bengali": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 49,
+            "explanation:unavailable": 49
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 49,
+            "gemini-contextual": 1
+          },
+          "context_status": {
+            "unavailable": 49,
+            "assisted": 1
+          }
+        },
+        "marathi->hindi": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 50
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 50
+          },
+          "context_status": {
+            "unavailable": 50
+          }
+        },
+        "marathi->bengali": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 50,
+            "explanation:unavailable": 50
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 50
+          },
+          "context_status": {
+            "unavailable": 50
+          }
+        },
+        "bengali->hindi": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 49,
+            "explanation:unavailable": 49
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 49,
+            "gemini-contextual": 1
+          },
+          "context_status": {
+            "unavailable": 49,
+            "assisted": 1
+          }
+        },
+        "bengali->marathi": {
+          "requests": 50,
+          "responses": 50,
+          "errors_by_status": {},
+          "error_categories": {},
+          "supporting_view_checks": {
+            "english_meaning:unavailable": 49,
+            "explanation:unavailable": 49
+          },
+          "model_sources": {
+            "indictrans2-320m-neural": 49,
+            "gemini-contextual": 1
+          },
+          "context_status": {
+            "unavailable": 49,
+            "assisted": 1
+          }
+        }
+      },
+      "latency": {
+        "hindi->marathi:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 1,
+          "fallbacks": 49,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.418,
+          "p95_seconds": 0.664,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "hindi->bengali:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 1,
+          "fallbacks": 49,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.437,
+          "p95_seconds": 0.588,
+          "draft_reference_exact_matches": 4,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->hindi:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 50,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.43,
+          "p95_seconds": 0.603,
+          "draft_reference_exact_matches": 3,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "marathi->bengali:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 0,
+          "fallbacks": 50,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.423,
+          "p95_seconds": 0.565,
+          "draft_reference_exact_matches": 2,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->hindi:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 1,
+          "fallbacks": 49,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.307,
+          "p95_seconds": 0.417,
+          "draft_reference_exact_matches": 3,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        },
+        "bengali->marathi:roman_hybrid": {
+          "attempted": 50,
+          "responses": 50,
+          "errors": {},
+          "assisted": 1,
+          "fallbacks": 49,
+          "memory_hits": 0,
+          "protected_value_failures": 0,
+          "p50_seconds": 0.27,
+          "p95_seconds": 0.393,
+          "draft_reference_exact_matches": 6,
+          "warning": "Draft comparisons and source-estimate CER are diagnostics, not reviewed accuracy."
+        }
+      }
+    }
+  ]
+}

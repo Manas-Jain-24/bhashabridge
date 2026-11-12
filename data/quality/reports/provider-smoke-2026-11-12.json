@@ -1,0 +1,163 @@
+{
+  "scope": "Provider-only smoke; no local neural inference or human scoring",
+  "human_reviewed": false,
+  "model": "gemini-3.5-flash",
+  "call_budget": 6,
+  "calls_reserved": 6,
+  "max_output_tokens_per_call": 2048,
+  "attempts": [
+    {
+      "id": "intent-001-hindi-marathi",
+      "source_language": "hindi",
+      "target_language": "marathi",
+      "status": "assisted",
+      "seconds": 1.7,
+      "response": {
+        "source_native": "सुप्रभात, नीला।",
+        "translation_native": "शुभप्रभात, नीला.",
+        "translation_roman": "Shubhaprabhat, Nila.",
+        "english_meaning": "Good morning, Nila.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "सुप्रभात",
+            "target_quote": "शुभप्रभात",
+            "explanation": "In Hindi, 'good morning' is commonly rendered as 'सुप्रभात', whereas in Marathi 'शुभप्रभात' is standard."
+          }
+        ]
+      }
+    },
+    {
+      "id": "intent-001-hindi-bengali",
+      "source_language": "hindi",
+      "target_language": "bengali",
+      "status": "assisted",
+      "seconds": 1.812,
+      "response": {
+        "source_native": "सुप्रभात, नीला।",
+        "translation_native": "শুভ সকাল, নীলা।",
+        "translation_roman": "Shubho sokal, Nila.",
+        "english_meaning": "Good morning, Nila.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "सुप्रभात",
+            "target_quote": "শুভ সকাল",
+            "explanation": "Hindi uses 'सुप्रभात' for good morning, whereas Bengali commonly uses 'শুভ সকাল'."
+          }
+        ]
+      }
+    },
+    {
+      "id": "intent-001-marathi-hindi",
+      "source_language": "marathi",
+      "target_language": "hindi",
+      "status": "assisted",
+      "seconds": 2.222,
+      "response": {
+        "source_native": "सुप्रभात, नीला.",
+        "translation_native": "सुप्रभात, नीला।",
+        "translation_roman": "Suprabhat, Neela.",
+        "english_meaning": "Good morning, Neela.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "सुप्रभात",
+            "target_quote": "सुप्रभात",
+            "explanation": "Both Marathi and Hindi use the Sanskrit loanword 'सुप्रभात' for 'Good morning'."
+          },
+          {
+            "source_quote": ".",
+            "target_quote": "।",
+            "explanation": "Hindi traditional orthography standardly uses the purna viram (।) instead of a Latin period."
+          }
+        ]
+      }
+    },
+    {
+      "id": "intent-001-marathi-bengali",
+      "source_language": "marathi",
+      "target_language": "bengali",
+      "status": "assisted",
+      "seconds": 10.141,
+      "response": {
+        "source_native": "सुप्रभात, नीला.",
+        "translation_native": "শুভ সকাল, নীলা।",
+        "translation_roman": "Shubho sokal, Nila.",
+        "english_meaning": "Good morning, Nila.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "सुप्रभात",
+            "target_quote": "শুভ সকাল",
+            "explanation": "Marathi commonly uses the single word 'सुप्रभात' for 'Good morning', whereas standard conversational Bengali typically uses the phrase 'শুভ সকাল'."
+          },
+          {
+            "source_quote": "नीला",
+            "target_quote": "নীলা",
+            "explanation": "The proper name is written using Devanagari characters in Marathi and Bengali characters in Bengali while preserving the pronunciation."
+          }
+        ]
+      }
+    },
+    {
+      "id": "intent-001-bengali-hindi",
+      "source_language": "bengali",
+      "target_language": "hindi",
+      "status": "assisted",
+      "seconds": 2.02,
+      "response": {
+        "source_native": "সুপ্রভাত, নীলা।",
+        "translation_native": "सुप्रभात, नीला।",
+        "translation_roman": "Suprabhāt, Nīlā.",
+        "english_meaning": "Good morning, Nila.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "সুপ্রভাত",
+            "target_quote": "सुप्रभात",
+            "explanation": "Both words mean 'good morning' and are cognates derived from Sanskrit."
+          },
+          {
+            "source_quote": "নীলা",
+            "target_quote": "नीला",
+            "explanation": "The proper name 'Nila' is written in Bengali script in the source and in Devanagari script in the target."
+          }
+        ]
+      }
+    },
+    {
+      "id": "intent-001-bengali-marathi",
+      "source_language": "bengali",
+      "target_language": "marathi",
+      "status": "assisted",
+      "seconds": 2.044,
+      "response": {
+        "source_native": "সুপ্রভাত, নীলা।",
+        "translation_native": "शुभप्रभात, नीला.",
+        "translation_roman": "Śubhaprabhāt, Nīlā.",
+        "english_meaning": "Good morning, Nila.",
+        "assessment": "equivalent",
+        "meaning_note": null,
+        "meaning_alternatives": [],
+        "contrasts": [
+          {
+            "source_quote": "সুপ্রভাত",
+            "target_quote": "शुभप्रभात",
+            "explanation": "The morning greeting in Bengali ('সুপ্রভাত') corresponds directly to the cognate 'शुभप्रभात' in Marathi."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "promote": false,
+  "reasons": [
+    "independent_human_review_required",
+    "missing_review_annotations",
+    "no_reviewed_adequacy_improvement",
+    "promotion_requires_heldout_test_split"
+  ],
+  "reviewed_slices": {},
+  "note": "This decision does not activate a model. Preserve the current model until all gates pass."
+}

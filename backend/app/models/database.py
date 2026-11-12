@@ -63,7 +63,7 @@ def create_resilient_engine() -> Tuple[Engine, str]:
         if not settings.ALLOW_SQLITE_FALLBACK:
             raise RuntimeError("Configured database is unavailable. SQLite fallback is disabled.") from e
         logger.warning(
-            f"[!] PostgreSQL at configured URL is unreachable ({e}). "
+            f"[!] Configured PostgreSQL is unreachable ({type(e).__name__}). "
             "Falling back to local SQLite (sqlite:///./bhashabridge.db) for development."
         )
         active_db_type = "sqlite_fallback"
@@ -79,7 +79,8 @@ def init_db(target_engine: Engine = None, seed: bool = True):
     """Initializes tables and default seed data without import-time side effects."""
     eng = target_engine or engine
     import app.models.entities  # ensures models are registered
-    Base.metadata.create_all(bind=eng)
+    from app.models.migrations import migrate
+    migrate(eng)
     if seed:
         from app.models.seed import seed_database
         SessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=eng)

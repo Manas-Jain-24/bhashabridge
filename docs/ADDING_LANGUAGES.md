@@ -21,6 +21,14 @@ The original Hindi–Marathi course remains separate. The Multilingual Arcade pr
 
 ## Verification
 
+Run `python scripts/check_language_readiness.py` for registry/script/content and
+evaluation-coverage checks. Add a versioned evaluation batch for every new
+direction before expanding the registry. Keep native/Roman/English card and
+unavailable-voice browser checks. See the [review protocol](../data/quality/README.md)
+for held-out grouping, provenance and promotion gates. The checker explicitly
+leaves human language quality pending. English meanings remain supporting views;
+English as a source/target needs its own adapters, schemas, lessons and evaluation.
+
 On 8 November 2026: 103 backend tests passed and the frontend production build passed. Cached IndicTrans2 produced Bengali from Hindi input, Hindi from Bengali input, and Marathi from Bengali input. The live browser also displayed a Bengali neural translation with a Gemini explanation. These were smoke checks, not a Bengali quality benchmark. No Bengali accuracy percentage is claimed.
 
 Reproduce a model smoke check from the project root:

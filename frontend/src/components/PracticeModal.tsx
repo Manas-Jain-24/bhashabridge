@@ -1,3 +1,4 @@
+import {useDialog} from '../utils/useDialog';
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { PracticeQuestion, PracticeEvaluateResponse } from '../types';
@@ -14,6 +15,7 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
   onClose,
   onPracticeCompleted,
 }) => {
+  const dialogRef=useDialog(isOpen);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submitting = useRef(false);
@@ -81,6 +83,8 @@ export const PracticeModal: React.FC<PracticeModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Interactive Practice Modal"

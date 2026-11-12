@@ -9,7 +9,6 @@ from app.schemas.analyze import VocabularyItem, GrammarPoint, ExampleItem
 from app.services.explanation.grammar_rules import get_matching_rules, find_matching_grammar_rules, ContrastiveGrammarRule
 from app.services.explanation.bilingual_aligner import align_sentence_vocabulary
 from app.services.explanation.learner_traps import detect_learner_traps, analyze_formality_and_context
-from app.services.explanation.legacy_backup.engine_legacy import HybridExplanationEngine as LegacyExplanationEngine
 from app.services.explanation.llm_tutor import llm_tutor
 from app.services.transliteration.service import transliteration_service
 
@@ -24,14 +23,11 @@ class HybridExplanationEngine(BaseExplanationService):
     Enhanced Hybrid Linguistic Explanation Engine with:
     - Explicit 'Why sentences differ' contrastive analysis
     - Curated parallel minimal-pair examples
-    - Smart dataset retrieval across 360+ verified learning scenarios
-    - Fail-safe runtime fallback to preserved legacy engine
+    - Retrieval of labelled teaching examples
+    - Explicit unavailable output when explanation generation fails
     """
 
     def __init__(self):
-        # 1. Preserved legacy fallback instance
-        self._legacy_engine = LegacyExplanationEngine()
-
         # 2. Curated educational dataset & external open-source parallel index
         self._dataset_cache: List[Dict[str, Any]] = []
         self._external_cache: List[Dict[str, Any]] = []
@@ -225,13 +221,13 @@ class HybridExplanationEngine(BaseExplanationService):
                     for example in result['examples']
                 ]
         except Exception as e:
-            logger.warning(f"Enhanced explanation failed ({e}); falling back to preserved legacy engine.")
-            result = self._legacy_engine.explain(
-                source_text=source_text,
-                source_language=source_language,
-                target_text=target_text,
-                target_language=target_language
-            )
+            # A failed explanation must not silently invoke an older matcher with
+            # weaker grounding, or log private source text through an exception.
+            logger.warning('Explanation unavailable (%s)', type(e).__name__)
+            result = {'summary':'Explanation is unavailable for this sentence.',
+                      'word_explanations':[], 'grammar_points':[], 'differences':[],
+                      'common_mistakes':[], 'examples':[], 'explanation_source':'unavailable',
+                      'tutor_attempted':True}
         if not use_tutor:
             result['tutor_attempted'] = True
         return result

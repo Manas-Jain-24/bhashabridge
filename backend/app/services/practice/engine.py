@@ -240,7 +240,7 @@ class PracticeService(BasePracticeService):
         difficulty: str = "level_1",
         topic: str = "general",
         question_type: str = "all",
-        db: Optional[Session] = None
+        db: Optional[Session] = None, user_id: int = 1
     ) -> Optional[PracticeQuestionDTO]:
         """
         Generates an adaptive practice question adhering strictly to requested filters.
@@ -267,7 +267,7 @@ class PracticeService(BasePracticeService):
         if db is not None:
             from app.models.entities import LearningActivity
             events = db.query(LearningActivity).filter(
-                LearningActivity.user_id == 1, LearningActivity.kind == "practice",
+                LearningActivity.user_id == user_id, LearningActivity.kind == "practice",
                 LearningActivity.created_at >= now_utc().replace(hour=0, minute=0, second=0, microsecond=0)).all()
             credited_ids = {event.event_key.split(":")[1] for event in events}
             candidates = [q for q in candidates if q["id"] not in credited_ids]
@@ -303,7 +303,7 @@ class PracticeService(BasePracticeService):
         user_answer: str,
         user_script: str = "roman",
         db: Optional[Session] = None,
-        selected_option_id: Optional[str] = None
+        selected_option_id: Optional[str] = None, user_id: int = 1
     ) -> Optional[PracticeEvaluateResponse]:
         """
         Evaluates a learner's answer against the question bank with strict normalized equality.
@@ -377,7 +377,7 @@ class PracticeService(BasePracticeService):
 
                 # 1. Record Practice Attempt with real question_id
                 attempt = PracticeAttempt(
-                    user_id=1,
+                    user_id=user_id,
                     question_id=numeric_id,
                     user_answer=user_answer,
                     is_correct=is_correct,
@@ -387,8 +387,8 @@ class PracticeService(BasePracticeService):
 
                 # Reward and proficiency credit only once per question per UTC day.
                 credited = is_correct and record_activity(
-                    db, f"practice:{question_id}:{now_utc().date()}", "practice", 10)
-                progress_rec = db.query(Progress).filter(Progress.user_id == 1).with_for_update().first()
+                    db, f"practice:{question_id}:{now_utc().date()}", "practice", 10, user_id=user_id)
+                progress_rec = db.query(Progress).filter(Progress.user_id == user_id).with_for_update().first()
                 if progress_rec and credited and progress_rec.status != "completed":
                     milestone = db.query(Milestone).filter(Milestone.id == progress_rec.milestone_id).first()
                     matches = (milestone and q.get("topic") == milestone.required_topic
@@ -405,7 +405,7 @@ class PracticeService(BasePracticeService):
                                 progress_rec.status = "completed"
 
                 # 3. Dynamically increment proficiency scores
-                profile = db.query(LanguageProfile).filter(LanguageProfile.user_id == 1).first()
+                profile = db.query(LanguageProfile).filter(LanguageProfile.user_id == user_id).first()
                 if profile and (not is_correct or credited):
                     delta = 0.02 if is_correct else -0.01
                     q_type = q.get("type", "")

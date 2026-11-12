@@ -2,13 +2,15 @@ import sys
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.models.database import init_db, check_db_health
 from app.services.transliteration.service import transliteration_service
 from app.services.translation.indictrans2 import indictrans2_adapter
 from app.services.explanation.llm_tutor import llm_tutor
+from app.core.auth import current_user, Identity
+from app.services.runtime import provider_status, metrics
 
 logger = logging.getLogger("bhashabridge")
 
@@ -31,7 +33,7 @@ async def lifespan(app: FastAPI):
             init_db(target_engine=target_engine)
             logger.info("[*] BhashaBridge database initialization completed.")
         except Exception as exc:
-            logger.error(f"[!] Database startup initialization error: {exc}")
+            logger.error("Database startup initialization error (%s)", type(exc).__name__)
             raise exc
     yield
     # Graceful shutdown
@@ -54,15 +56,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.routes import analyze, translate, transliterate, explain, practice, progress, gamification
+from app.api.routes import analyze, translate, transliterate, explain, practice, progress, gamification, auth, corrections
 
-app.include_router(analyze.router, prefix="/api", tags=["Analysis & Learning"])
-app.include_router(translate.router, prefix="/api", tags=["Translation"])
-app.include_router(transliterate.router, prefix="/api", tags=["Transliteration"])
-app.include_router(explain.router, prefix="/api", tags=["Explanations"])
-app.include_router(practice.router, prefix="/api", tags=["Practice Engine"])
-app.include_router(progress.router, prefix="/api", tags=["Learner Progress"])
-app.include_router(gamification.router, prefix="/api", tags=["Gamification Hub"])
+app.include_router(analyze.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Analysis & Learning"])
+app.include_router(translate.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Translation"])
+app.include_router(transliterate.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Transliteration"])
+app.include_router(explain.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Explanations"])
+app.include_router(practice.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Practice Engine"])
+app.include_router(progress.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Learner Progress"])
+app.include_router(gamification.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Gamification Hub"])
+app.include_router(auth.router, prefix='/api', tags=['Accounts'])
+app.include_router(corrections.router, prefix='/api', tags=['Corrections'])
 
 @app.get("/api/health")
 def health_check():
@@ -82,6 +86,7 @@ def health_check():
         "status": "healthy" if db_status["status"] == "connected" else "degraded",
         "service": settings.PROJECT_NAME,
         "version": settings.PROJECT_VERSION,
+        "provider": {"configured":bool(llm_active), **provider_status()},
         "database": {
             "status": db_status["status"],
             "type": db_status["type"]
@@ -101,4 +106,12 @@ def supported_languages():
 
 
 from app.api.routes import arcade
-app.include_router(arcade.router, prefix="/api", tags=["Multilingual Arcade"])
+app.include_router(arcade.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Multilingual Arcade"])
+
+
+@app.get('/api/operations/metrics')
+def runtime_metrics(user: Identity = Depends(current_user)):
+    from fastapi import HTTPException
+    if user.role not in ('local', 'reviewer'):
+        raise HTTPException(403, 'Operations access is required')
+    return metrics()

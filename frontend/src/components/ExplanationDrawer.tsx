@@ -1,3 +1,4 @@
+import {useDialog} from '../utils/useDialog';
 import React, { useState, useMemo, useEffect } from 'react';
 import { AnalyzeResponse } from '../types';
 import { 
@@ -33,6 +34,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
   onClose,
   data,
 }) => {
+  const dialogRef=useDialog(isOpen);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
@@ -180,6 +182,8 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Linguistic and Grammar Explanation Drawer"

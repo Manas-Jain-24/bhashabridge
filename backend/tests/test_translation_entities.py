@@ -58,6 +58,27 @@ def test_vernacular_marker_is_restored_before_bengali_script_conversion(processo
     assert 'help@example.org' in processor.postprocess_batch(['पत्ता <आईडी1> आहे।'],'ben_Beng')[0]
 
 
+@pytest.mark.parametrize('marker',['< आइडि1 >','< आई डि 1 >','< आयडी1 >','< ID1 >'])
+def test_model_marker_spellings_restore_identifiers_across_scripts(processor,marker):
+    processor.preprocess_batch(['पता https://example.org/Guide है।'],'hin_Deva','ben_Beng')
+    assert 'https://example.org/Guide' in processor.postprocess_batch(['ठिकाना '+marker+' ।'],'ben_Beng')[0]
+
+
+@pytest.mark.parametrize('value',['.5','-.25','-3','+8','07:35','12.5','30%','1234'])
+def test_numeric_signs_precision_and_format_survive_all_target_scripts(processor,value):
+    for target in ('hin_Deva','mar_Deva','ben_Beng'):
+        prepared=processor.preprocess_batch(['मूल्य '+value+' है।'],'hin_Deva',target)
+        assert processor._entity_maps==[{1:value}]
+        assert value in processor.postprocess_batch([prepared[0].split(' ',2)[2]],target)[0]
+
+
+def test_duplicate_entity_marker_is_rejected(processor):
+    from app.services.translation.indic_processor import EntityPreservationError
+    processor.preprocess_batch(['राशि +8 है।'],'hin_Deva','mar_Deva')
+    with pytest.raises(EntityPreservationError):
+        processor.postprocess_batch(['रक्कम <ID1> <ID1> आहे।'],'mar_Deva')
+
+
 def test_unknown_placeholders_and_corrupted_marker_runs_are_rejected():
     from app.services.translation.generation import validate_native_output,OutputArtifactError
     for text in ('मूल्य < ID3 > है।','टोंगामध्ये ω09 ω0 ω2 ω1।'):

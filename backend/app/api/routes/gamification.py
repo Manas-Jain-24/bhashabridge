@@ -1,3 +1,4 @@
+from app.core.auth import current_user, Identity
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -11,19 +12,19 @@ from app.services.gamification.engine import gamification_service
 router = APIRouter()
 
 @router.get("/gamification/profile", response_model=GamificationProfileResponse)
-def get_gamification_profile(db: Session = Depends(get_db)):
+def get_gamification_profile(db: Session = Depends(get_db), user: Identity = Depends(current_user)):
     """Fetches user XP, level, rank title, streak flame, hearts, and unlocked badges."""
-    return gamification_service.get_profile_dto(db, user_id=1)
+    return gamification_service.get_profile_dto(db, user_id=user.id)
 
 @router.post("/gamification/action", response_model=GamificationProfileResponse)
-def record_gamification_action(req: GamificationActionRequest, db: Session = Depends(get_db)):
+def record_gamification_action(req: GamificationActionRequest, db: Session = Depends(get_db), user: Identity = Depends(current_user)):
     """Processes in-game actions: XP gains, heart loss/refill, badge unlock, blitz scores."""
-    return gamification_service.process_action(db, req, user_id=1)
+    return gamification_service.process_action(db, req, user_id=user.id)
 
 @router.get("/gamification/skill-tree", response_model=List[SkillTreeNode])
-def get_skill_tree(db: Session = Depends(get_db)):
+def get_skill_tree(db: Session = Depends(get_db), user: Identity = Depends(current_user)):
     """Fetches the 6-level Bridge Quest roadmap with unlock status, stars, and concepts."""
-    return gamification_service.get_skill_tree(db, user_id=1)
+    return gamification_service.get_skill_tree(db, user_id=user.id)
 
 @router.get("/gamification/scramble", response_model=List[ScrambleQuestion])
 def get_scramble_questions():

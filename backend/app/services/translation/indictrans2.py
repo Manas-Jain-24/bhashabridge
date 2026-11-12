@@ -347,7 +347,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                         self._translation_cache.popitem(last=False)
                 return result
             except Exception as exc:
-                logger.warning("IndicTrans2 inference failed (%s), falling back to modular engine.", exc.__class__.__name__, exc_info=True)
+                logger.warning("IndicTrans2 inference failed (%s); checking available fallback.", exc.__class__.__name__)
 
         if not rule_pair(source_language, target_language):
             if self.is_loaded:

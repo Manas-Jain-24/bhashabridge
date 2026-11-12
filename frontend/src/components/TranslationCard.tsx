@@ -72,7 +72,7 @@ export const TranslationCard: React.FC<TranslationCardProps> = ({
   const showRoman = scriptMode === 'roman' || (scriptMode === 'both' && bridgeLevel !== 'advanced');
 
   return (
-    <div className="glass-panel-glow rounded-3xl p-6 md:p-8 space-y-6 relative overflow-hidden border border-indigo-500/30">
+    <div className="glass-panel-glow rounded-3xl p-6 md:p-8 space-y-6 relative overflow-hidden border border-indigo-500/30 [overflow-wrap:anywhere]">
       {/* Background glow decoration */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 

@@ -8,12 +8,13 @@ sys.path.insert(0,str(ROOT/'backend'))
 
 
 def prune(db, apply=False):
-    from app.models.entities import AuthSession,UsageCounter,PracticeIssue
+    from app.models.entities import AuthSession,UsageCounter,PracticeIssue,RegistrationInvitation
     from app.services.activity import now_utc
     now=now_utc()
     queries={'expired_sessions':db.query(AuthSession).filter(AuthSession.expires_at<now),
              'expired_quota_windows':db.query(UsageCounter).filter(UsageCounter.expires_at<now),
-             'expired_practice_issues':db.query(PracticeIssue).filter(PracticeIssue.issued_at<now-timedelta(days=1))}
+             'expired_practice_issues':db.query(PracticeIssue).filter(PracticeIssue.issued_at<now-timedelta(days=1)),
+             'expired_invitations':db.query(RegistrationInvitation).filter(RegistrationInvitation.expires_at<now)}
     counts={name:query.count() for name,query in queries.items()}
     if apply:
         for query in queries.values():query.delete(synchronize_session=False)

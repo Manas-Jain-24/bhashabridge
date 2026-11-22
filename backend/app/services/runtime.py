@@ -20,6 +20,9 @@ _slots = threading.BoundedSemaphore(settings.INFERENCE_WORKERS)
 _lock = threading.Lock()
 _samples = deque(maxlen=2000)
 _counts = Counter()
+_http_samples = deque(maxlen=2000)
+_http_counts = Counter()
+_accepting = True
 _provider = {'last_success_utc':None, 'last_failure_utc':None, 'last_failure_kind':None}
 
 
@@ -43,6 +46,8 @@ def stage(name):
 
 def cloud_allowed():
     check_deadline()
+    if settings.TRANSLATION_MODE == "local":
+        return False
     callback = budget.get()
     if callback:
         return callback()
@@ -52,6 +57,12 @@ def cloud_allowed():
     from app.services.limits import reserve_cloud
     with SessionLocal() as db:
         return reserve_cloud(db, settings.LOCAL_USER_ID)
+
+
+def effective_translation_mode(requested=None):
+    if settings.TRANSLATION_MODE == "local":
+        return "local"
+    return requested or settings.TRANSLATION_MODE
 
 
 def provider_event(success, kind=None):
@@ -68,9 +79,29 @@ def provider_status():
         return dict(_provider)
 
 
+def http_event(route, status, elapsed_ms):
+    with _lock:
+        _http_counts[(route, status)] += 1
+        _http_samples.append((route, elapsed_ms))
+
+
+def start_inference():
+    global _executor, _accepting
+    if not _accepting:
+        _executor = ThreadPoolExecutor(max_workers=settings.INFERENCE_WORKERS, thread_name_prefix="inference")
+        _accepting = True
+
+
+def stop_inference():
+    global _accepting
+    _accepting = False
+    _executor.shutdown(wait=False, cancel_futures=True)
+
+
 def metrics():
     with _lock:
         samples, counts = list(_samples), dict(_counts)
+        http_samples, http_counts = list(_http_samples), dict(_http_counts)
     groups = {}
     for row in samples:
         key = '|'.join((row['route'], row['source'], row['target'], row['temperature']))
@@ -83,12 +114,17 @@ def metrics():
         result[key] = {'samples':len(rows), **summary([r['elapsed_ms'] for r in rows]),
                        'stages':{name:summary([r['stages'][name] for r in rows if name in r['stages']])
                                  for name in {name for r in rows for name in r['stages']}}}
+    endpoint_times = {}
+    for route, elapsed in http_samples:
+        endpoint_times.setdefault(route, []).append(elapsed)
     return {'scope':'this process; last 2000 requests', 'counts':counts, 'latency':result,
+            'http_counts': {f"{route}|{status}": count for (route, status), count in http_counts.items()},
+            'http_latency': {route: summary(values) for route, values in endpoint_times.items()},
             'provider':provider_status()}
 
 
 async def run_inference(operation, db, user_id, route, source, target):
-    if not _slots.acquire(blocking=False):
+    if not _accepting or not _slots.acquire(blocking=False):
         with _lock:
             _counts[f'{route}:busy'] += 1
         raise HTTPException(503, 'Inference is busy. Retry shortly.', headers={'Retry-After':'2'})
@@ -113,6 +149,7 @@ async def run_inference(operation, db, user_id, route, source, target):
                 outcome = 'ok'
                 context = getattr(result, 'context_status', None)
                 issue = getattr(result, 'context_issue', None)
+                model_source = getattr(result, 'model_source', None)
                 return result
             finally:
                 budget.reset(budget_token); deadline.reset(deadline_token); stages.reset(stage_token)
@@ -123,6 +160,8 @@ async def run_inference(operation, db, user_id, route, source, target):
                     _samples.append(row); _counts[f'{route}:{outcome}'] += 1
                     if context:
                         _counts[f'context:{context}'] += 1
+                    if outcome == 'ok' and model_source:
+                        _counts[f'model:{model_source}'] += 1
                     if issue in ('unavailable','cooldown','busy','budget_exhausted','rejected','provider_error'):
                         _counts[f'context_issue:{issue}'] += 1
     try:

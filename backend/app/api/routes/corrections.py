@@ -4,7 +4,7 @@ import uuid
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import update
+from sqlalchemy import tuple_, update
 from sqlalchemy.orm import Session
 from app.core.auth import current_user, reviewer, Identity
 from app.core.languages import Language, InputText, check_source_script
@@ -36,6 +36,7 @@ class Proposal(BaseModel):
     note: str = Field(min_length=1, max_length=2000)
     provenance: str | None = Field(default=None, min_length=1, max_length=1000)
     license: str | None = Field(default=None, min_length=1, max_length=120)
+    publication_consent: bool = False
 
 
 class Decision(BaseModel):
@@ -67,16 +68,19 @@ def event(db, row, user, action):
 
 
 def revise(db, row, version, values, user, action):
+    if row.version != version:
+        raise HTTPException(409, 'This report changed. Reload before editing.')
     changed = db.execute(update(CorrectionReport).where(
         CorrectionReport.id == row.id, CorrectionReport.version == version
-    ).values(**values, version=version+1, updated_at=now_utc()))
-    if changed.rowcount != 1:
+    ).values(**values, version=version+1, updated_at=now_utc()).returning(CorrectionReport.id))
+    if changed.scalar_one_or_none() is None:
         db.rollback()
         raise HTTPException(409, 'This report changed. Reload before editing.')
     db.refresh(row)
     event(db, row, user, action)
+    result = dto(row)
     db.commit()
-    return dto(row)
+    return result
 
 
 @router.post('', status_code=201)
@@ -90,11 +94,17 @@ def report(body: Report, db: Session = Depends(get_db), user: Identity = Depends
 
 @router.get('')
 def listing(db: Session = Depends(get_db), user: Identity = Depends(current_user),
-            limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0)):
+            limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),
+            before_id: str | None = Query(None, max_length=36)):
     query = db.query(CorrectionReport)
     if user.role != 'reviewer':
         query = query.filter_by(user_id=user.id)
-    return [dto(row) for row in query.order_by(CorrectionReport.created_at.desc()).offset(offset).limit(limit)]
+    if before_id is not None:
+        previous = find(db, before_id, user)
+        query = query.filter(tuple_(CorrectionReport.created_at, CorrectionReport.id) <
+                             (previous.created_at, previous.id))
+    return [dto(row) for row in query.order_by(CorrectionReport.created_at.desc(), CorrectionReport.id.desc())
+            .offset(offset).limit(limit)]
 
 
 @router.get('/{report_id}/history')
@@ -110,7 +120,8 @@ def propose(report_id: str, body: Proposal, db: Session = Depends(get_db), user:
     row = find(db, report_id, user)
     check_source_script(body.target, row.target_language)
     values = {'proposed_target':body.target, 'proposed_roman':body.roman,
-        'proposed_english':body.english, 'note':body.note, 'status':'proposed'}
+        'proposed_english':body.english, 'note':body.note, 'status':'proposed',
+        'publication_consent':bool(body.publication_consent and row.user_id == user.id)}
     for field in ('provenance','license'):
         if getattr(body,field) is not None:
             values[field] = getattr(body,field)

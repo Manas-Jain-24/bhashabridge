@@ -1,0 +1,145 @@
+x-backend: &backend
+  image: bhashabridge-api:${BB_IMAGE_TAG:-local}
+  build:
+    context: .
+    dockerfile: deploy/backend.Dockerfile
+    target: ${BB_BACKEND_TARGET:-core}
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  volumes:
+    - type: bind
+      source: ${BB_MODEL_DIR:-./models}
+      target: /models
+      read_only: true
+      bind:
+        create_host_path: false
+  mem_limit: ${BB_API_MEMORY:-4g}
+  cpus: ${BB_API_CPUS:-2}
+  pids_limit: 256
+  environment: &backend-env
+    APP_ENV: production
+    AUTH_MODE: accounts
+    COOKIE_SECURE: "true"
+    PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN}
+    CORS_ORIGINS: "[]"
+    AUTH_RATE_SECRET: ${AUTH_RATE_SECRET:?set AUTH_RATE_SECRET}
+    TRUSTED_PROXY: 172.31.237.2
+    ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+    INIT_DB_ON_STARTUP: "false"
+    TRANSLATION_ENGINE: ${TRANSLATION_ENGINE:-indictrans2}
+    TRANSLATION_MODE: ${TRANSLATION_MODE:-local}
+    GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-lite-latest}
+    GEMINI_TRANSLATION_MODEL: ${GEMINI_TRANSLATION_MODEL:-gemini-3.5-flash}
+    CLOUD_CALLS_PER_DAY: ${CLOUD_CALLS_PER_DAY:-100}
+    CLOUD_USER_CALLS_PER_DAY: ${CLOUD_USER_CALLS_PER_DAY:-25}
+    INFERENCE_WORKERS: ${INFERENCE_WORKERS:-1}
+    MODEL_MANIFEST: ${MODEL_MANIFEST:-}
+    MODEL_MANIFEST_SHA256: ${MODEL_MANIFEST_SHA256:-}
+  networks: [private]
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: deploy/postgres.Dockerfile
+    user: postgres
+    command: ["postgres", "-c", "log_min_error_statement=panic"]
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bhasha_owner}
+      POSTGRES_DB: ${POSTGRES_DB:-bhashabridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      BB_DB_USER: ${BB_DB_USER:-bhasha_app}
+      BB_DB_PASSWORD: ${BB_DB_PASSWORD:?set BB_DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks: [private]
+
+  migrate:
+    <<: *backend
+    command: ["python", "backend/scripts/init_db.py"]
+    environment:
+      <<: *backend-env
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?set MIGRATION_DATABASE_URL}
+      GEMINI_API_KEY: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    restart: unless-stopped
+    stop_grace_period: 50s
+    networks:
+      private:
+        aliases: [api-internal]
+      edge:
+    environment:
+      <<: *backend-env
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request,urllib.parse; host=urllib.parse.urlsplit(os.environ['PUBLIC_ORIGIN']).netloc; req=urllib.request.Request('http://127.0.0.1:8000/api/health/ready', headers={'Host':host}); urllib.request.urlopen(req, timeout=4).close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  proxy:
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN}
+      PUBLIC_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST}
+      CADDY_TLS_DIRECTIVE: ${CADDY_TLS_DIRECTIVE:-}
+    ports:
+      - "${BB_BIND_ADDRESS:-0.0.0.0}:${BB_HTTP_PORT:-80}:8080"
+      - "${BB_BIND_ADDRESS:-0.0.0.0}:${BB_HTTPS_PORT:-443}:8443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/__proxy_live"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+    networks:
+      edge:
+      private:
+        ipv4_address: 172.31.237.2
+
+networks:
+  edge:
+  private:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.31.237.0/28
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,48 @@
+{
+    admin off
+    http_port 8080
+    https_port 8443
+    auto_https disable_redirects
+}
+
+:8080 {
+    @alive path /__proxy_live
+    respond @alive 200
+    redir {$PUBLIC_ORIGIN}{uri} permanent
+}
+
+https://{$PUBLIC_HOST}:8443 {
+    {$CADDY_TLS_DIRECTIVE}
+    root * /srv
+    encode zstd gzip
+    header {
+        -Server
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        X-Frame-Options "DENY"
+        Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    }
+    handle /api/* {
+        request_body {
+            max_size 256KiB
+        }
+        reverse_proxy api-internal:8000 {
+            header_up X-Forwarded-For {remote_host}
+            transport http {
+                dial_timeout 3s
+                response_header_timeout 190s
+            }
+        }
+    }
+    handle /assets/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        file_server
+    }
+    handle {
+        header Cache-Control "no-cache"
+        try_files {path} /index.html
+        file_server
+    }
+}

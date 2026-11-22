@@ -1,7 +1,8 @@
 import { MultilingualArcade } from './components/learn/MultilingualArcade';
 import { CorrectionQueue } from './components/CorrectionQueue';
 import { languages, languageEntries } from './config/languages';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { AccountContext } from './components/AccountShell';
 import { Navbar } from './components/Navbar';
 import { BridgeModeSelector } from './components/BridgeModeSelector';
 import { TranslationCard } from './components/TranslationCard';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const cloudAllowed = useContext(AccountContext)?.cloudAllowed ?? true;
   const [queueOpen,setQueueOpen]=useState(false);
   const [reportDraft,setReportDraft]=useState<{source_language:string;target_language:string;source_text:string;observed_target:string}|null>(null);
   const [learnMode, setLearnMode] = useState<'arcade' | 'course'>('arcade');
@@ -30,7 +32,7 @@ export default function App() {
   const [sourceLang, setSourceLang] = useState<Language>('hindi');
   const [targetLang, setTargetLang] = useState<Language>('marathi');
   const [scriptMode, setScriptMode] = useState<ScriptMode>('both');
-  const [translationMode, setTranslationMode] = useState<'hybrid' | 'local'>('hybrid');
+  const [translationMode, setTranslationMode] = useState<'hybrid' | 'local'>(cloudAllowed ? 'hybrid' : 'local');
   const [bridgeLevel, setBridgeLevel] = useState<BridgeLevel>('intermediate');
 
   const [inputText, setInputText] = useState('Mujhe Marathi seekhni hai');
@@ -281,10 +283,10 @@ export default function App() {
             <select id="translation-mode" value={translationMode}
               onChange={(event) => { invalidateAnalysis(); setTranslationMode(event.target.value as 'hybrid' | 'local'); }}
               className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white">
-              <option value="hybrid">Hybrid (local + Gemini)</option>
+              {cloudAllowed && <option value="hybrid">Hybrid (local + Gemini)</option>}
               <option value="local">Local model</option>
             </select>
-            <span>Hybrid uses Gemini to interpret the full sentence, including Roman spelling.</span>
+            {cloudAllowed && <span>Hybrid sends the sentence to Gemini for contextual interpretation.</span>}
           </div>
 
           {/* Text Input Area */}

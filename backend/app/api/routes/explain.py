@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.core.auth import current_user, Identity
-from app.services.runtime import run_inference
+from app.services.runtime import effective_translation_mode, run_inference
 from app.schemas.explain import ExplainRequest, ExplainResponse
 from app.services.explanation.engine import explanation_engine
 
@@ -24,6 +24,7 @@ def explain_sync(request: ExplainRequest):
         source_text=request.source_text,
         source_language=request.source_language,
         target_text=request.target_text,
-        target_language=request.target_language
+        target_language=request.target_language,
+        use_tutor=effective_translation_mode(request.translation_mode) == "hybrid",
     )
     return ExplainResponse(**result)

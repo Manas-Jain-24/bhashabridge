@@ -30,7 +30,7 @@ def generate_practice(request: PracticeGenerateRequest, db: Session = Depends(ge
     if not question:
         raise HTTPException(
             status_code=404,
-            detail=f"No practice questions found matching language='{request.language}', difficulty='{request.difficulty}', topic='{request.topic}'."
+            detail="No practice questions found for this selection."
         )
     issue = db.query(PracticeIssue).filter_by(user_id=user.id, question_key=question.id).first()
     if issue is None:
@@ -56,18 +56,25 @@ def evaluate_practice(request: PracticeEvaluateRequest, db: Session = Depends(ge
     if result is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Question with ID '{request.question_id}' not found."
+            detail="Question not found."
         )
     return result
 
 @router.get("/practice/history")
 def get_practice_history(
     limit: int = Query(default=10, ge=1, le=100, description="Maximum number of historical attempts (1-100)"),
+    before_id: int | None = Query(None, ge=1),
     db: Session = Depends(get_db), user: Identity = Depends(current_user)
 ) -> List[Dict[str, Any]]:
-    attempts = db.query(PracticeAttempt).filter(
-        PracticeAttempt.user_id == user.id
-    ).order_by(PracticeAttempt.created_at.desc()).limit(limit).all()
+    query = db.query(PracticeAttempt).filter(PracticeAttempt.user_id == user.id)
+    if before_id is not None:
+        previous = query.filter(PracticeAttempt.id == before_id).first()
+        if not previous:
+            raise HTTPException(404, "History cursor not found")
+        from sqlalchemy import tuple_
+        query = query.filter(tuple_(PracticeAttempt.created_at, PracticeAttempt.id) <
+                             (previous.created_at, previous.id))
+    attempts = query.order_by(PracticeAttempt.created_at.desc(), PracticeAttempt.id.desc()).limit(limit).all()
 
     return [
         {

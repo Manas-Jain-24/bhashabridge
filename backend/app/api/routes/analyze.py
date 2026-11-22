@@ -1,4 +1,5 @@
 from app.core.languages import check_source_script
+from unicodedata import normalize
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models.database import get_db
@@ -35,7 +36,8 @@ def analyze_sync(request: AnalyzeRequest, db: Session):
     # source selector. Heuristic detection is used only when the caller asks for it.
     detected_language = inferred_lang if request.source_language == 'auto' else request.source_language
     # Detect first: Hindi chat replacements can change Bengali Roman words.
-    normalized = clean_input if detected_language == 'bengali' else language_detector.normalize(clean_input)
+    normalized = normalize("NFC", clean_input if detected_language == 'bengali'
+                           else language_detector.normalize(clean_input))
 
     if request.target_language == detected_language and "target_language" in request.model_fields_set:
         raise HTTPException(422, "Source and target languages must be different. Please choose another target language.")

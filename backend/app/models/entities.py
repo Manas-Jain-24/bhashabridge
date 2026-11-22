@@ -1,11 +1,11 @@
 import json
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 from app.models.database import Base
 
 def utc_now():
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class User(Base):
     __tablename__ = "users"
@@ -274,6 +274,14 @@ class UsageCounter(Base):
     expires_at = Column(DateTime, nullable=False, index=True)
 
 
+class RegistrationInvitation(Base):
+    __tablename__ = "registration_invitations"
+    token_hash = Column(String(64), primary_key=True)
+    username = Column(String(40), nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    consumed_at = Column(DateTime, nullable=True)
+
+
 class CorrectionReport(Base):
     __tablename__ = 'correction_reports'
     id = Column(String(36), primary_key=True)
@@ -292,6 +300,7 @@ class CorrectionReport(Base):
     status = Column(String(20), nullable=False, default='reported', index=True)
     provenance = Column(Text, nullable=False)
     license = Column(String(120), nullable=False)
+    publication_consent = Column(Boolean, nullable=False, default=False, server_default=false())
     version = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, nullable=False, default=utc_now)
     updated_at = Column(DateTime, nullable=False, default=utc_now)

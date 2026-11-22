@@ -2,15 +2,18 @@ import sys
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.config import settings
+from app.core.http import ApiMiddleware, api_error
 from app.models.database import init_db, check_db_health
 from app.services.transliteration.service import transliteration_service
 from app.services.translation.indictrans2 import indictrans2_adapter
 from app.services.explanation.llm_tutor import llm_tutor
 from app.core.auth import current_user, Identity
-from app.services.runtime import provider_status, metrics
+from app.services.runtime import provider_status, metrics, start_inference, stop_inference
 
 logger = logging.getLogger("bhashabridge")
 
@@ -34,16 +37,21 @@ async def lifespan(app: FastAPI):
             logger.info("[*] BhashaBridge database initialization completed.")
         except Exception as exc:
             logger.error("Database startup initialization error (%s)", type(exc).__name__)
-            raise exc
+            raise
+    if settings.APP_ENV == "production":
+        start_inference()
     yield
-    # Graceful shutdown
+    if settings.APP_ENV == "production":
+        stop_inference()
     logger.info("[*] BhashaBridge application shutdown complete.")
 
+documentation_options = {"openapi_url": None} if settings.APP_ENV == "production" else {}
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
     description="NLP-powered Hindi–Marathi language-learning backend with Roman-Devanagari bridge.",
-    lifespan=lifespan
+    lifespan=lifespan,
+    **documentation_options,
 )
 
 # CORS configuration: Wildcard '*' disables credentials to avoid browser rejection
@@ -52,9 +60,23 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=not has_wildcard_cors,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"] if settings.APP_ENV == "production" else ["*"],
+    allow_headers=["Content-Type", "X-CSRF-Token"] if settings.APP_ENV == "production" else ["*"],
 )
+app.add_middleware(ApiMiddleware)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, _exc: RequestValidationError):
+    return api_error(422, "invalid_request", "Check the submitted fields and retry.", request.state.request_id)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    code = {400: "invalid_request", 401: "unauthenticated", 403: "forbidden", 404: "not_found",
+            409: "conflict", 422: "invalid_request", 429: "rate_limited", 503: "unavailable", 504: "timeout"}
+    return api_error(exc.status_code, code.get(exc.status_code, "request_failed"),
+                     exc.detail, request.state.request_id, exc.headers)
 
 from app.api.routes import analyze, translate, transliterate, explain, practice, progress, gamification, auth, corrections
 
@@ -72,30 +94,37 @@ app.include_router(corrections.router, prefix='/api', tags=['Corrections'])
 def health_check():
     target_engine = getattr(app.state, "db_engine", None)
     db_status = check_db_health(target_engine=target_engine)
+    return {
+        "status": "healthy" if db_status["status"] == "connected" else "degraded",
+        "service": settings.PROJECT_NAME,
+        "version": settings.PROJECT_VERSION,
+        "provider": {"configured":bool(llm_tutor.is_available), **provider_status()},
+        "database": {"status": db_status["status"], "type": db_status["type"]},
+        "models": model_health(),
+    }
+
+
+@app.get("/api/health/models")
+def model_health():
+    from app.services.translation.neural_transformer import neural_transformer_translator
+
     translit_neural = getattr(transliteration_service, "_is_loaded", False)
     trans_neural = getattr(indictrans2_adapter, "is_loaded", False)
-    if trans_neural:
+    if settings.TRANSLATION_ENGINE == "m2m100" and neural_transformer_translator._is_loaded:
+        translation_status = "m2m100_neural"
+    elif settings.TRANSLATION_ENGINE == "m2m100" and not neural_transformer_translator._load_failed:
+        translation_status = "m2m100_not_loaded"
+    elif settings.TRANSLATION_ENGINE == "indictrans2" and trans_neural:
         translation_status = "indictrans2_neural"
     elif settings.TRANSLATION_ENGINE == "indictrans2" and not getattr(indictrans2_adapter, "_load_failed", False):
         translation_status = "indictrans2_not_loaded"
     else:
         translation_status = "curated_modular_fallback"
-    llm_active = getattr(llm_tutor, "is_available", False)
-
     return {
-        "status": "healthy" if db_status["status"] == "connected" else "degraded",
-        "service": settings.PROJECT_NAME,
-        "version": settings.PROJECT_VERSION,
-        "provider": {"configured":bool(llm_active), **provider_status()},
-        "database": {
-            "status": db_status["status"],
-            "type": db_status["type"]
-        },
-        "models": {
-            "transliteration": "neural_seq2seq" if translit_neural else "rule_fallback",
-            "translation": translation_status,
-            "explanation_tutor": "gemini_sensei" if llm_active else "local_ud_rules"
-        }
+        "transliteration": "neural_seq2seq" if translit_neural else "rule_fallback",
+        "translation": translation_status,
+        "indictrans2": "loaded" if trans_neural else "unavailable" if indictrans2_adapter._load_failed else "not_loaded",
+        "explanation_tutor": "gemini_sensei" if llm_tutor.is_available and settings.TRANSLATION_MODE == "hybrid" else "local_ud_rules",
     }
 
 
@@ -105,13 +134,38 @@ def supported_languages():
     return LANGUAGES
 
 
+@app.get("/api/health/live")
+def liveness():
+    return {"status": "alive"}
+
+
+@app.get("/api/health/ready")
+def readiness(response: Response):
+    from app.models.database import engine
+    from app.models.migrations import is_current
+
+    target_engine = getattr(app.state, "db_engine", None) or engine
+    try:
+        with target_engine.connect() as connection:
+            ready = is_current(connection)
+    except Exception:
+        ready = False
+    response.status_code = 200 if ready else 503
+    return {"status": "ready" if ready else "unavailable"}
+
+
 from app.api.routes import arcade
 app.include_router(arcade.router, dependencies=[Depends(current_user)], prefix="/api", tags=["Multilingual Arcade"])
 
 
 @app.get('/api/operations/metrics')
 def runtime_metrics(user: Identity = Depends(current_user)):
-    from fastapi import HTTPException
     if user.role not in ('local', 'reviewer'):
         raise HTTPException(403, 'Operations access is required')
-    return metrics()
+    from app.models.database import engine
+    pool = (getattr(app.state, "db_engine", None) or engine).pool
+    result = metrics()
+    result["database"] = {"status": check_db_health(getattr(app.state, "db_engine", None))["status"]}
+    if hasattr(pool, "checkedout"):
+        result["database"]["pool"] = {"size": pool.size(), "checked_out": pool.checkedout()}
+    return result

@@ -4,8 +4,8 @@ from pydantic import BaseModel, Field, field_validator
 class PracticeGenerateRequest(BaseModel):
     language: Literal["marathi", "hindi"] = Field("marathi", description="marathi or hindi")
     difficulty: Literal["level_0", "level_1", "level_2", "level_3", "level_4", "level_5"] = Field("level_1", description="level_0 to level_5")
-    topic: Optional[str] = Field("general", description="Topic like daily_life, food, college")
-    question_type: Optional[str] = Field("all", description="Type 1 to 7 or all")
+    topic: Optional[str] = Field("general", max_length=80, description="Topic like daily_life, food, college")
+    question_type: Optional[str] = Field("all", max_length=40, description="Type 1 to 7 or all")
 
 class PracticeOption(BaseModel):
     id: str
@@ -23,10 +23,10 @@ class PracticeQuestionDTO(BaseModel):
     hint: Optional[str] = None
 
 class PracticeEvaluateRequest(BaseModel):
-    question_id: str = Field(..., min_length=1, description="Question ID")
-    user_answer: str = Field(..., min_length=1, description="Learner answer")
+    question_id: str = Field(..., min_length=1, max_length=100, description="Question ID")
+    user_answer: str = Field(..., min_length=1, max_length=2000, description="Learner answer")
     user_script: Optional[Literal["roman", "devanagari"]] = "roman"
-    selected_option_id: Optional[str] = None
+    selected_option_id: Optional[str] = Field(None, max_length=100)
 
     @field_validator("user_answer")
     @classmethod

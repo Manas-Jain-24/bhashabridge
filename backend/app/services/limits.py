@@ -1,7 +1,7 @@
 """Database-backed quotas shared by processes; no user text is retained."""
 from datetime import timedelta
-from sqlalchemy import update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from app.models.entities import UsageCounter
 from app.services.activity import now_utc
 
@@ -9,15 +9,14 @@ from app.services.activity import now_utc
 def reserve(db, key, maximum, expires_at):
     if maximum <= 0:
         return False
-    try:
-        with db.begin_nested():
-            db.add(UsageCounter(key=key, count=0, expires_at=expires_at))
-            db.flush()
-    except IntegrityError:
-        pass
-    return db.execute(update(UsageCounter).where(
-        UsageCounter.key == key, UsageCounter.count < maximum
-    ).values(count=UsageCounter.count + 1)).rowcount == 1
+    insert = postgres_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
+    statement = insert(UsageCounter).values(key=key, count=1, expires_at=expires_at)
+    accepted = statement.on_conflict_do_update(
+        index_elements=[UsageCounter.key],
+        set_={"count": UsageCounter.count + 1},
+        where=UsageCounter.count < maximum,
+    ).returning(UsageCounter.count)
+    return db.execute(accepted).scalar_one_or_none() is not None
 
 
 def reserve_cloud(db, user_id):

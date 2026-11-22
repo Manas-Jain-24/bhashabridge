@@ -77,14 +77,19 @@ DEFAULT_MILESTONES = [
     }
 ]
 
-def seed_database(db: Session):
+def seed_demo(db: Session):
     # 1. Ensure Default User exists
     user = db.query(User).filter(User.id == 1).first()
     if not user:
         user = User(id=1, username="learner")
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        db.flush()
+        if db.get_bind().dialect.name == "postgresql":
+            from sqlalchemy import text
+            db.execute(text("""
+                SELECT setval(pg_get_serial_sequence('users','id'), greatest(max(id),
+                    nextval(pg_get_serial_sequence('users','id')))) FROM users
+            """))
 
     # 2. Ensure Language Profile exists
     profile = db.query(LanguageProfile).filter(LanguageProfile.user_id == 1).first()
@@ -107,22 +112,7 @@ def seed_database(db: Session):
             devanagari_to_roman=0.0
         )
         db.add(profile)
-        db.commit()
-
-    # 3. Ensure Milestones exist
-    for m in DEFAULT_MILESTONES:
-        existing = db.query(Milestone).filter(Milestone.id == m["id"]).first()
-        if not existing:
-            milestone = Milestone(
-                id=m["id"],
-                level=m["level"],
-                title=m["title"],
-                description=m["description"],
-                total_exercises=m["total_exercises"],
-                required_topic=m["required_topic"]
-            )
-            db.add(milestone)
-    db.commit()
+        db.flush()
 
     # 4. Ensure Progress record exists
     progress_rec = db.query(Progress).filter(Progress.user_id == 1).first()
@@ -134,14 +124,25 @@ def seed_database(db: Session):
             status="in_progress"
         )
         db.add(progress_rec)
-        db.commit()
+        db.flush()
 
     # 4b. Ensure User Gamification record exists
     gamification = db.query(UserGamification).filter(UserGamification.user_id == 1).first()
     if not gamification:
         gamification = UserGamification(user_id=1)
         db.add(gamification)
-        db.commit()
+        db.flush()
+
+
+def seed_database(db: Session, *, include_demo=True):
+    for milestone in DEFAULT_MILESTONES:
+        if db.get(Milestone, milestone["id"]) is None:
+            db.add(Milestone(**milestone))
+    db.flush()
+    if include_demo:
+        seed_demo(db)
+    if not include_demo and not LEARNING_DATASET.is_file():
+        raise RuntimeError("The learning catalog is missing")
 
     # 5. Populate Educational & Vocabulary Tables from dataset
     if LEARNING_DATASET.exists():
@@ -171,8 +172,8 @@ def seed_database(db: Session):
                                         notes=f"{v.get('gender_info', '')} | {v.get('bridge_note', '')}"
                                     )
                                     db.add(word_entry)
-                    except Exception as e:
-                        print(f"Warning: Failed to seed 1500 vocab lexicon: {e}")
+                    except (OSError, ValueError) as exc:
+                        raise RuntimeError("The vocabulary catalog is unreadable") from exc
 
                 # 2. Add words from learning dataset
                 for item in dataset:
@@ -189,7 +190,7 @@ def seed_database(db: Session):
                                 difficulty=item.get("difficulty", "beginner")
                             )
                             db.add(word_entry)
-                db.commit()
+                db.flush()
 
 
             # Seed Learning Examples
@@ -209,7 +210,7 @@ def seed_database(db: Session):
                         explanation=item.get("context_note", "") or item.get("grammar_note", "")
                     )
                     db.add(example_entry)
-                db.commit()
+                db.flush()
 
             # Seed Grammar Concepts from dataset topics and grammar notes
             if db.query(GrammarConcept).count() == 0:
@@ -234,13 +235,11 @@ def seed_database(db: Session):
                             difficulty=item.get("difficulty", "beginner")
                         )
                         db.add(concept)
-                db.commit()
-        except Exception as e:
-            print(f"Warning: Failed to seed dataset: {e}")
-            db.rollback()
+                db.flush()
+        except (OSError, ValueError) as exc:
+            raise RuntimeError("The learning catalog is unreadable") from exc
 
     # Only the curated, unambiguous examples enter exact translation memory.
     from app.services.translation.memory import seed_reviewed_translations
     seed_reviewed_translations(db)
-    db.commit()
 

@@ -10,12 +10,17 @@ Features:
   - Seamless fallback to calibrated modular translator if needed.
 """
 
-import os
+import re
 import logging
-from typing import Any, Dict, Optional, Tuple
+from collections import OrderedDict
+from threading import Lock
+from typing import Any, Dict
+from app.core.config import settings
 from app.services.base import BaseTranslationService
 from app.services.transliteration.service import transliteration_service
 from app.services.translation.translator import modular_translator
+from app.services.translation.model_snapshot import model_snapshot
+from app.services.runtime import check_deadline
 
 logger = logging.getLogger("bhashabridge.translation.neural")
 
@@ -35,7 +40,8 @@ class NeuralTransformerTranslator(BaseTranslationService):
         self.device = "cpu"
         self._is_loaded = False
         self._load_failed = False
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache = OrderedDict()
+        self._lock = Lock()
 
     def _load_model(self) -> bool:
         if self._is_loaded:
@@ -43,26 +49,29 @@ class NeuralTransformerTranslator(BaseTranslationService):
         if self._load_failed:
             return False
 
-        use_mock = os.getenv("USE_MOCK_MODELS", "false").lower() == "true"
-        if use_mock:
+        if settings.USE_MOCK_MODELS or settings.TESTING:
             return False
 
         try:
+            snapshot, _, options = model_snapshot(self.MODEL_NAME)
             import torch
             from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info(f"[*] Loading Neural M2M100 model ({self.MODEL_NAME}) onto {self.device}...")
             
-            self.tokenizer = M2M100Tokenizer.from_pretrained(self.MODEL_NAME)
-            self.model = M2M100ForConditionalGeneration.from_pretrained(self.MODEL_NAME).to(self.device)
+            self.tokenizer = M2M100Tokenizer.from_pretrained(snapshot, **options)
+            self.model = M2M100ForConditionalGeneration.from_pretrained(
+                snapshot, **options, **({"use_safetensors": True} if options else {})
+            ).to(self.device)
             self.model.eval()
 
             self._is_loaded = True
             logger.info("[*] Neural M2M100 model loaded and ready for inference!")
             return True
         except Exception as e:
-            logger.warning(f"[!] Could not load neural model {self.MODEL_NAME}: {e}. Using calibrated fallback.")
+            logger.warning("M2M100 load failed (%s). Using calibrated fallback.", type(e).__name__)
+            self.model = self.tokenizer = None
             self._load_failed = True
             return False
 
@@ -73,6 +82,11 @@ class NeuralTransformerTranslator(BaseTranslationService):
         target_language: str = "hindi",
         script: str = "both"
     ) -> Dict[str, Any]:
+        with self._lock:
+            check_deadline()
+            return self._translate(text, source_language, target_language, script)
+
+    def _translate(self, text, source_language, target_language, script):
         clean_text = text.strip()
         if not clean_text:
             return {
@@ -85,9 +99,10 @@ class NeuralTransformerTranslator(BaseTranslationService):
                 "english_meaning": ""
             }
 
-        cache_key = f"{source_language.lower()}_{target_language.lower()}_{script}_{clean_text.lower()}"
+        cache_key = (source_language, target_language, script, clean_text)
         if cache_key in self._cache:
-            return self._cache[cache_key]
+            self._cache.move_to_end(cache_key)
+            return {**self._cache[cache_key], "source_text": text}
 
         # 1. Normalize input script: if Latin/Roman script, transliterate to Devanagari first
         is_devanagari = any('\u0900' <= c <= '\u097f' for c in clean_text)
@@ -144,16 +159,19 @@ class NeuralTransformerTranslator(BaseTranslationService):
                     "source_text": text,
                     "source_language": source_language,
                     "target_language": target_language,
-                    "translation": native_translation if script == "devanagari" else roman_translation,
+                    "translation": native_translation if script in ("native", "devanagari") else roman_translation,
                     "translation_native": native_translation,
                     "translation_roman": roman_translation,
                     "english_meaning": english_meaning,
                     "model_source": "m2m100-neural-seq2seq-418m"
                 }
-                self._cache[cache_key] = result
+                if settings.APP_ENV != "production" and settings.TRANSLATION_CACHE_MAX_SIZE:
+                    self._cache[cache_key] = dict(result)
+                    if len(self._cache) > settings.TRANSLATION_CACHE_MAX_SIZE:
+                        self._cache.popitem(last=False)
                 return result
             except Exception as e:
-                logger.error(f"Neural inference exception: {e}")
+                logger.warning("M2M100 inference failed (%s)", type(e).__name__)
 
         # 3. Fallback to calibrated modular translator
         fallback_res = modular_translator.translate(
@@ -163,7 +181,7 @@ class NeuralTransformerTranslator(BaseTranslationService):
             script=script
         )
         fallback_res["model_source"] = "bhashabridge-calibrated-adapter"
-        self._cache[cache_key] = fallback_res
+        fallback_res["fallback_used"] = True
         return fallback_res
 
 neural_transformer_translator = NeuralTransformerTranslator()

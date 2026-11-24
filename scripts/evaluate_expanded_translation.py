@@ -39,10 +39,12 @@ def main():
     if args.offline:
         os.environ["HF_HUB_OFFLINE"]="1"; os.environ["TRANSFORMERS_OFFLINE"]="1"
     from check_expanded_data import audit
+    from runtime_evaluation import edit_distance
     from sacrebleu.metrics import CHRF, BLEU
     from app.services.translation.indictrans2 import IndicTrans2Adapter
     from app.services.translation.punctuation import finish_native_sentence,POSTPROCESSOR_VERSION
     from app.services.translation.generation import GENERATION_SETTINGS
+    from app.services.translation.contextual import protected_values
     import torch
     torch.set_num_threads(args.threads)
     logging.info('Auditing frozen expanded data')
@@ -106,14 +108,24 @@ def main():
                 prediction['legacy_processed_prediction']=prediction['prediction']; prediction['prediction']=fixed
         predicted=[p['prediction'] for p in predictions]; reference=[p['reference'] for p in predictions]
         bleu=BLEU(tokenize='intl'); chrf=CHRF(word_order=2)
+        elapsed_total = elapsed + time.monotonic() - start
+        protected = [(protected_values(p['source']), protected_values(p['prediction'])) for p in predictions]
+        entity_rows = [source_values == target_values for source_values, target_values in protected if source_values]
         scores={'bleu':bleu.corpus_score(predicted,[reference]).score,'chrf_plus_plus':chrf.corpus_score(predicted,[reference]).score,
+                'exact_match':sum(p == r for p, r in zip(predicted, reference)) / len(reference),
+                'cer':sum(edit_distance(p,r) for p,r in zip(predicted,reference)) / max(1,sum(map(len,reference))),
+                'wer':sum(edit_distance(p.split(),r.split()) for p,r in zip(predicted,reference))
+                      / max(1,sum(len(r.split()) for r in reference)),
+                'protected_values_rows':len(entity_rows), 'protected_values_preserved':sum(entity_rows),
+                'failure_rate':sum(not p['prediction'] or 'inference_error' in p for p in predictions) / len(predictions),
+                'mean_elapsed_ms_per_sentence':1000 * elapsed_total / len(predictions),
                 'bleu_signature':str(bleu.get_signature()),'chrf_signature':str(chrf.get_signature())}
         errors=sorted(({**p,'sentence_chrf_plus_plus':chrf.sentence_score(p['prediction'],[p['reference']]).score} for p in predictions),key=lambda p:p['sentence_chrf_plus_plus'])[:10]
         write_json(output,{**previous,'identity':identity,'complete':True,'diagnostic_subset':len(rows)<total,'examples':len(predictions),
                            'postprocessor':POSTPROCESSOR_VERSION,'generation_parity_verified':parity,'inference_failures':sum('inference_error' in p for p in predictions),
                            'runtime_config':runtime,
                            'sample_selection':'Full split' if len(rows)==total else f'First {len(rows)} source-order rows; domain-biased diagnostic, not representative.',
-                           'elapsed_seconds':elapsed+time.monotonic()-start,**scores,'lowest_scoring_examples':errors,'predictions':predictions,
+                           'elapsed_seconds':elapsed_total,**scores,'lowest_scoring_examples':errors,'predictions':predictions,
                            'limitations':['Automatic similarity does not replace bilingual review.','Our teaching data is excluded; upstream pretrained-model exposure is unknown.','Native-script model path; reviewed-memory overrides and Roman input are not evaluated.']})
         print(json.dumps({'pair':name,'examples':len(predictions),**scores}),flush=True)
 

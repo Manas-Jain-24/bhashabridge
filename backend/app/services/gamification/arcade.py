@@ -28,6 +28,22 @@ def read_rows(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+@lru_cache(maxsize=1)
+def eligible_lexicon():
+    path = DATA / "lexicon.jsonl"
+    by_language = {}
+    if path.is_file():
+        with path.open(encoding="utf-8") as source:
+            for line in source:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if (2 <= len(row["native"]) <= 16 and 3 <= len(row["roman"]) <= 18
+                        and row["attestations"] >= 2):
+                    by_language.setdefault(row["language"], []).append({**row, "prompt": row["roman"]})
+    return by_language
+
+
 @lru_cache(maxsize=80)
 def bank(language, mode, difficulty='advanced', topic='all'):
     if mode in ("spell", "sprint"):
@@ -41,8 +57,7 @@ def bank(language, mode, difficulty='advanced', topic='all'):
                    for r in read_rows(DATA / "translation/teaching.jsonl")
                    if language in r["sentences"] and 2 <= len(r["sentences"][language].split()) <= 22]
     else:
-        entries = [{**r, "prompt": r["roman"]} for r in read_rows(DATA / "lexicon.jsonl")
-                   if r["language"] == language and 2 <= len(r["native"]) <= 16 and 3 <= len(r["roman"]) <= 18 and r["attestations"] >= 2]
+        entries = eligible_lexicon().get(language, [])
     # Do not create questions whose prompt has conflicting corpus answers.
     answers = {}
     for row in entries:
@@ -57,6 +72,8 @@ def make_questions(language, mode, limit=10, difficulty='advanced', topic='all',
     if len(rows) < 4:
         raise HTTPException(503, "Game data is unavailable. Run scripts/expand_datasets.py first.")
     questions = []
+    candidates = [(normalize_source(row["native"]), row["native"], row.get("aliases", ()))
+                  for row in (distractors if distractors is not None else rows)] if mode != "spell" else []
     for row in RNG.sample(rows, min(limit, len(rows))):
         record = hashlib.sha256((language + ":" + row["native"] + ":" + row["prompt"]).encode()).hexdigest()[:24]
         question = {"id": record, "reference": row["native"], "roman": row["roman"], "source": row["source"], "record": record, 'difficulty':difficulty}
@@ -65,8 +82,9 @@ def make_questions(language, mode, limit=10, difficulty='advanced', topic='all',
             RNG.shuffle(tiles)
             question.update(prompt=row["native"], tiles=tiles, expected_spellings=row.get("aliases", [row["roman"]]))
         else:
-            candidates = [r for r in (distractors if distractors is not None else rows) if normalize_source(r["native"]) != normalize_source(row["native"]) and row["prompt"] not in r.get("aliases", [])]
-            alternatives = list({normalize_source(r["native"]): r["native"] for r in candidates}.values())
+            answer_key = normalize_source(row["native"])
+            alternatives = list({key: native for key, native, aliases in candidates
+                                 if key != answer_key and row["prompt"] not in aliases}.values())
             if len(alternatives) < 3: continue
             choices = [row["native"]] + RNG.sample(alternatives, 3)
             RNG.shuffle(choices)

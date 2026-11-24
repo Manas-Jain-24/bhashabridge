@@ -99,7 +99,7 @@ class NeuralTransliterationService(BaseTransliterationService):
                     if res:
                         return res
                 except Exception as exc:
-                    logger.debug(f"Neural token transliteration error for '{token}': {exc}")
+                    logger.debug("Neural token transliteration failed (%s)", type(exc).__name__)
 
             from app.services.transliteration.phonetic_rule_service import phonetic_transliterator
             return phonetic_transliterator._latin_word_to_dev(token, lang=language)

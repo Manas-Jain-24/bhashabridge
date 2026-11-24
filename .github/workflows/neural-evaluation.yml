@@ -1,0 +1,37 @@
+name: Offline neural evaluation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: offline-neural-evaluation
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    runs-on: [self-hosted, linux, bhashabridge-verified-models]
+    timeout-minutes: 180
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      HF_HOME: ${{ vars.BHASHABRIDGE_HF_CACHE }}
+      GEMINI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+      - name: Use preprovisioned model cache and locked dependencies
+        run: |
+          test -n "$HF_HOME" && test -d "$HF_HOME"
+          python -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements-production-neural.txt
+          .venv/bin/python -m pip install sacrebleu==2.6.0
+      - run: .venv/bin/python scripts/evaluate_expanded_translation.py --offline --all-pairs --require-device cpu --output-dir output/neural
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: offline-neural-evaluation
+          path: output/neural
+          retention-days: 14

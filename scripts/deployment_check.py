@@ -7,8 +7,7 @@ sys.path.insert(0,str(ROOT/'backend'))
 
 
 def check(settings,engine):
-    from sqlalchemy import text
-    from app.models.migrations import LATEST
+    from app.models.migrations import is_current
     findings=[]
     if settings.APP_ENV!='production':findings.append('APP_ENV must be production')
     if settings.AUTH_MODE!='accounts':findings.append('Account authentication required')
@@ -16,10 +15,15 @@ def check(settings,engine):
     if settings.TESTING or settings.USE_MOCK_MODELS:findings.append('Test/mock mode enabled')
     if settings.ALLOW_SQLITE_FALLBACK:findings.append('Database fallback enabled')
     if '*' in settings.CORS_ORIGINS:findings.append('Wildcard CORS enabled')
+    if engine.dialect.name != "postgresql":findings.append("Production PostgreSQL is required")
+    try:
+        settings.production_requirements()
+    except ValueError:
+        findings.append("Production settings did not pass validation")
     try:
         with engine.connect() as connection:
-            version=connection.execute(text('SELECT max(version) FROM schema_versions')).scalar()
-        if version!=LATEST:findings.append('Database migration required')
+            if not is_current(connection):
+                findings.append('Database migration required')
     except Exception:findings.append('Database or schema unavailable')
     return {'configuration_ready':not findings,'findings':findings,
         'manual_deployment_checks':['HTTPS and same-origin proxy','Restore drill on staged database',

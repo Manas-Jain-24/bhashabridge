@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 
-def evaluate(engine="modular"):
+def evaluate(engine="modular", output=None):
     # Default evaluation is offline. Neural evaluation is explicitly requested.
     if engine == "modular":
         os.environ["USE_MOCK_MODELS"] = "true"
@@ -71,7 +71,8 @@ def evaluate(engine="modular"):
                         "Earlier reports with runtime lookup overlap are invalid for unseen-sentence quality."],
         "sample_evaluations": samples,
     }
-    output = ROOT / "ml/evaluation/translation_eval_report.json"
+    output = output or ROOT / "ml/evaluation/translation_eval_report.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     print(f"Report: {output}")
@@ -81,4 +82,6 @@ def evaluate(engine="modular"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--engine", choices=["modular", "indictrans2"], default="modular")
-    evaluate(parser.parse_args().engine)
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    evaluate(args.engine, args.output)

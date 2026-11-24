@@ -1,8 +1,8 @@
 import {useState, useEffect, type ReactNode, createContext} from 'react';
-import {apiJson} from '../services/http';
+import {ApiError, apiJson} from '../services/http';
 
 export type Account = {id:number; username:string; role:string};
-export const AccountContext = createContext<Account | null>(null);
+export const AccountContext = createContext<(Account & {cloudAllowed: boolean}) | null>(null);
 const field = 'block w-full rounded-lg bg-slate-900 border border-slate-600 p-3 text-white';
 
 export function AccountShell({children}:{children:ReactNode}) {
@@ -10,6 +10,9 @@ export function AccountShell({children}:{children:ReactNode}) {
   const [loading,setLoading] = useState(true);
   const [mode,setMode] = useState<'login'|'register'>('login');
   const [registration,setRegistration] = useState(false);
+  const [invitationRequired,setInvitationRequired] = useState(false);
+  const [invitation,setInvitation] = useState('');
+  const [cloudAllowed,setCloudAllowed] = useState(false);
   const [error,setError] = useState('');
   const [busy,setBusy] = useState(false);
   const [username,setUsername] = useState('');
@@ -19,10 +22,15 @@ export function AccountShell({children}:{children:ReactNode}) {
   const load = async () => {
     setLoading(true); setError('');
     try {
-      const config = await apiJson<{mode:string;registration:boolean}>('/api/auth/config');
+      const config = await apiJson<{mode:string;registration:boolean;invitation_required:boolean;translation_mode:string}>('/api/auth/config');
       setRegistration(config.registration);
+      setInvitationRequired(config.invitation_required);
+      setCloudAllowed(config.translation_mode === 'hybrid');
       try { setAccount(await apiJson<Account>('/api/auth/me')); }
-      catch (failure) { setAccount(null); if (config.mode==='local') throw failure; }
+      catch (failure) {
+        setAccount(null);
+        if (config.mode === 'local' || !(failure instanceof ApiError) || failure.status !== 401) throw failure;
+      }
     } catch (failure) { setError((failure as Error).message); }
     finally { setLoading(false); }
   };
@@ -36,7 +44,9 @@ export function AccountShell({children}:{children:ReactNode}) {
   },[]);
   const submit=async(event:React.FormEvent)=>{
     event.preventDefault();setBusy(true);setError('');
-    try {setAccount(await apiJson<Account>('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})}));setPassword('');}
+    const credentials = mode === 'register' && invitationRequired
+      ? {username,password,invitation_token:invitation.trim()} : {username,password};
+    try {setAccount(await apiJson<Account>('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(credentials)}));setPassword('');setInvitation('');}
     catch(failure){setError((failure as Error).message);}finally{setBusy(false);}
   };
   const signOut=async()=>{
@@ -60,13 +70,14 @@ export function AccountShell({children}:{children:ReactNode}) {
     <form onSubmit={submit} className="space-y-4">
       <label className="block">Username<input className={field} autoComplete="username" pattern="[a-zA-Z0-9_]{3,40}" required value={username} onChange={e=>setUsername(e.target.value)} /></label>
       <label className="block">Password<input className={field} type="password" autoComplete={mode==='login'?'current-password':'new-password'} minLength={12} maxLength={128} required value={password} onChange={e=>setPassword(e.target.value)} /></label>
+      {mode==='register'&&invitationRequired&&<label className="block">Invitation code<input className={field} autoComplete="off" spellCheck={false} required minLength={43} maxLength={43} value={invitation} onChange={e=>setInvitation(e.target.value)} /></label>}
       <p className="text-sm text-slate-400">Use 3–40 letters, numbers or underscores for your username and at least 12 characters for your password.</p>
       <button disabled={busy} className="rounded-lg bg-indigo-600 p-3 w-full">{busy?'Please wait…':mode==='login'?'Sign in':'Create account'}</button>
     </form>
     {registration&&<button onClick={()=>{setMode(mode==='login'?'register':'login');setError('');}} className="underline">{mode==='login'?'Create an account':'Already have an account? Sign in'}</button>}
     {error&&<p role="alert" className="text-rose-300">{error} <button onClick={()=>void load()} className="underline">Retry connection</button></p>}
   </main>;
-  return <AccountContext.Provider value={account}><div className="bg-slate-950 text-slate-200 px-4 py-2 text-sm border-b border-slate-800 flex flex-wrap gap-4 items-center">
+  return <AccountContext.Provider value={{...account,cloudAllowed}}><div className="bg-slate-950 text-slate-200 px-4 py-2 text-sm border-b border-slate-800 flex flex-wrap gap-4 items-center">
     <span>{account.role==='local'?'Local workspace':account.username}</span>
     {account.role!=='local'&&<><button onClick={()=>setManaging(!managing)} className="underline">Account settings</button><button disabled={busy} onClick={signOut} className="underline">Sign out</button></>}
     {error&&<span role="alert" className="text-rose-300">{error}</span>}

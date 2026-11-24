@@ -1,15 +1,18 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import Annotated
+from hmac import digest as keyed_digest
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, StringConstraints
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from app.core.auth import current_user, check_origin, hash_password, verify_password, new_session, digest, Identity
+from app.core.auth import (current_user, check_origin, hash_password, verify_password, stage_session,
+                           set_session_cookies, clear_session_cookies, client_address, lock_account, digest, Identity)
 from app.core.config import settings
 from app.models.database import get_db
 from app.models.entities import (User, AccountCredential, AuthSession, LanguageProfile,
-                                 UserGamification, Progress, Milestone)
+                                 UserGamification, Progress, Milestone, RegistrationInvitation)
 from app.services.activity import now_utc
 from app.services.limits import reserve
 
@@ -21,19 +24,34 @@ class Credentials(BaseModel):
     password: Annotated[str, StringConstraints(min_length=12, max_length=128)]
 
 
-def throttle(request, db):
+class Registration(Credentials):
+    invitation_token: Annotated[str, StringConstraints(min_length=43, max_length=43)] | None = None
+
+
+def auth_key(value):
+    if not settings.AUTH_RATE_SECRET:
+        return digest(value)
+    return keyed_digest(settings.AUTH_RATE_SECRET.encode(), value.encode(), 'sha256').hex()
+
+
+def throttle(request, db, username):
     check_origin(request)
-    minute = int(now_utc().timestamp()) // 300
-    client = request.client.host if request.client else 'unknown'
-    if not reserve(db, f'auth:{digest(client)}:{minute}', 20, now_utc()+timedelta(minutes=10)):
-        db.rollback()
-        raise HTTPException(429, 'Too many authentication attempts. Retry later.', headers={'Retry-After':'300'})
+    now = now_utc()
+    window = int(now.replace(tzinfo=timezone.utc).timestamp()) // 300
+    expires = now + timedelta(minutes=10)
+    accepted = reserve(db, f'auth:ip:{auth_key(client_address(request))}:{window}', 20, expires)
+    if accepted:
+        accepted = reserve(db, f'auth:name:{auth_key(username.lower())}:{window}', 10, expires)
     db.commit()
+    if not accepted:
+        raise HTTPException(429, 'Too many authentication attempts. Retry later.', headers={'Retry-After':'300'})
 
 
 @router.get('/config')
 def config():
-    return {'mode':settings.AUTH_MODE, 'registration':settings.ALLOW_REGISTRATION}
+    return {'mode':settings.AUTH_MODE, 'registration':settings.ALLOW_REGISTRATION,
+            'invitation_required':settings.invitation_required,
+            'translation_mode':settings.TRANSLATION_MODE}
 
 
 @router.get('/me')
@@ -42,13 +60,30 @@ def me(user: Identity = Depends(current_user)):
 
 
 @router.post('/register', status_code=201)
-def register(body: Credentials, request: Request, response: Response, db: Session = Depends(get_db)):
-    throttle(request, db)
+def register(body: Registration, request: Request, response: Response, db: Session = Depends(get_db)):
+    throttle(request, db, body.username)
     if not settings.ALLOW_REGISTRATION:
         raise HTTPException(403, 'Registration is disabled')
     username = body.username.lower()
+    invitation_hash = digest(body.invitation_token or "")
+    if settings.invitation_required:
+        invitation = db.get(RegistrationInvitation, invitation_hash)
+        if (not invitation or invitation.username != username or invitation.consumed_at
+                or invitation.expires_at <= now_utc()):
+            raise HTTPException(403, "A valid invitation is required")
+        db.rollback()
     encoded = hash_password(body.password)
     try:
+        if settings.invitation_required:
+            now = now_utc()
+            result = db.execute(update(RegistrationInvitation).where(
+                RegistrationInvitation.token_hash == invitation_hash,
+                RegistrationInvitation.username == username,
+                RegistrationInvitation.consumed_at.is_(None),
+                RegistrationInvitation.expires_at > now,
+            ).values(consumed_at=now).returning(RegistrationInvitation.token_hash))
+            if result.scalar_one_or_none() is None:
+                raise HTTPException(403, "A valid invitation is required")
         user = User(username=username)
         db.add(user); db.flush()
         db.add(AccountCredential(user_id=user.id, password_hash=encoded, role='learner'))
@@ -57,17 +92,24 @@ def register(body: Credentials, request: Request, response: Response, db: Sessio
         milestone = db.query(Milestone).order_by(Milestone.level).first()
         if milestone:
             db.add(Progress(user_id=user.id, milestone_id=milestone.id))
+        old = request.cookies.get("bb_session")
+        if old:
+            db.query(AuthSession).filter_by(token_hash=digest(old)).delete()
+        token, csrf = stage_session(db, user.id)
+        user_id = user.id
         db.commit()
     except IntegrityError:
         db.rollback()
+        if settings.invitation_required:
+            raise HTTPException(403, "A valid invitation is required") from None
         raise HTTPException(409, 'Choose another username')
-    new_session(db, user.id, response)
-    return {'id':user.id, 'username':user.username, 'role':'learner'}
+    set_session_cookies(response, token, csrf)
+    return {'id':user_id, 'username':username, 'role':'learner'}
 
 
 @router.post('/login')
 def login(body: Credentials, request: Request, response: Response, db: Session = Depends(get_db)):
-    throttle(request, db)
+    throttle(request, db, body.username)
     user = db.query(User).filter_by(username=body.username.lower()).first()
     credential = db.get(AccountCredential, user.id) if user else None
     if not credential:
@@ -75,19 +117,27 @@ def login(body: Credentials, request: Request, response: Response, db: Session =
         raise HTTPException(401, 'Invalid username or password')
     if not verify_password(body.password, credential.password_hash):
         raise HTTPException(401, 'Invalid username or password')
+    user_id, password_hash = user.id, credential.password_hash
+    db.rollback()
+    user = lock_account(db, user_id)
+    credential = db.get(AccountCredential, user_id)
+    if not credential or credential.password_hash != password_hash:
+        raise HTTPException(401, 'Invalid username or password')
     old = request.cookies.get('bb_session')
     if old:
         db.query(AuthSession).filter_by(token_hash=digest(old)).delete()
-    new_session(db, user.id, response)
-    return {'id':user.id, 'username':user.username, 'role':credential.role}
+    token, csrf = stage_session(db, user_id)
+    result = {'id':user_id, 'username':user.username, 'role':credential.role}
+    db.commit()
+    set_session_cookies(response, token, csrf)
+    return result
 
 
 @router.post('/logout')
 def logout(response: Response, user: Identity = Depends(current_user), db: Session = Depends(get_db)):
     if user.session_hash:
         db.query(AuthSession).filter_by(token_hash=user.session_hash).delete(); db.commit()
-    response.delete_cookie('bb_session', path='/')
-    response.delete_cookie('bb_csrf', path='/')
+    clear_session_cookies(response)
     return {'signed_out': True}
 
 
@@ -126,8 +176,11 @@ def delete_account(body: DeleteAccount, response: Response, user: Identity = Dep
     from app.models.entities import CorrectionReport, CorrectionEvent
     if user.role == 'local':
         raise HTTPException(403, 'The local demo profile cannot be deleted through account controls')
+    if not reserve(db, f'auth:delete:{user.id}:{now_utc().date()}', 15, now_utc()+timedelta(days=2)):
+        raise HTTPException(429, 'Too many authentication attempts. Retry later.')
     credential = db.get(AccountCredential, user.id)
     if not credential or not verify_password(body.password, credential.password_hash):
+        db.commit()
         raise HTTPException(401, 'Incorrect password')
     ids = select(CorrectionReport.id).where(CorrectionReport.user_id == user.id)
     db.execute(delete(CorrectionEvent).where(CorrectionEvent.report_id.in_(ids)))
@@ -137,5 +190,5 @@ def delete_account(body: DeleteAccount, response: Response, user: Identity = Dep
     # Keep only an anonymous actor row for other people's review audit records.
     db.get(User, user.id).username = 'deleted_' + secrets.token_hex(12)
     db.commit()
-    response.delete_cookie('bb_session', path='/'); response.delete_cookie('bb_csrf', path='/')
+    clear_session_cookies(response)
     return {'deleted':True}

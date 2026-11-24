@@ -607,7 +607,7 @@ class GamificationService:
         return profile
 
     def get_profile_dto(self, db: Session, user_id: int = 1) -> GamificationProfileResponse:
-        profile = self.get_or_create_profile(db, user_id)
+        profile = db.query(UserGamification).filter_by(user_id=user_id).first() or UserGamification(user_id=user_id)
         
         # Determine rank title and level based on XP
         user_xp = profile.xp or 0

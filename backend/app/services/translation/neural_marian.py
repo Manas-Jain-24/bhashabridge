@@ -55,7 +55,7 @@ class MarianNeuralTranslator(BaseTranslationService):
             logger.info(f"[*] Neural model {model_name} loaded successfully!")
             return model, tokenizer
         except Exception as e:
-            logger.warning(f"[!] Could not load neural model {model_name}: {e}. Using calibrated conversational fallback.")
+            logger.warning("Marian model load failed (%s). Using calibrated fallback.", type(e).__name__)
             self._load_failed[key] = True
             return None, None
 
@@ -130,7 +130,7 @@ class MarianNeuralTranslator(BaseTranslationService):
                 self._cache[cache_key] = result
                 return result
             except Exception as e:
-                logger.error(f"Neural inference error: {e}")
+                logger.warning("Marian inference failed (%s)", type(e).__name__)
 
         # 3. Fallback to calibrated modular engine
         fallback_res = modular_translator.translate(

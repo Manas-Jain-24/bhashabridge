@@ -1,9 +1,11 @@
 """Opaque, revocable sessions and explicit local-development identity."""
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import timedelta, timezone
 import hashlib
 import hmac
 import secrets
+from ipaddress import ip_address
+from threading import BoundedSemaphore
 from urllib.parse import urlsplit
 
 from fastapi import Depends, HTTPException, Request
@@ -12,6 +14,11 @@ from app.core.config import settings
 from app.models.database import get_db
 from app.models.entities import AccountCredential, AuthSession, User
 from app.services.activity import now_utc
+from sqlalchemy import select
+
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
+INFERENCE_ROUTES = {"/api/analyze", "/api/translate", "/api/transliterate", "/api/explain"}
+_password_slots = BoundedSemaphore(settings.AUTH_HASH_WORKERS)
 
 
 def digest(value):
@@ -20,7 +27,12 @@ def digest(value):
 
 def hash_password(password, salt=None):
     salt = salt or secrets.token_hex(16)
-    key = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=2**15, r=8, p=3, maxmem=64*1024*1024)
+    if not _password_slots.acquire(blocking=False):
+        raise HTTPException(503, "Authentication is busy. Retry shortly.", headers={"Retry-After": "2"})
+    try:
+        key = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=2**15, r=8, p=3, maxmem=64*1024*1024)
+    finally:
+        _password_slots.release()
     return f'scrypt$32768$8$3${salt}${key.hex()}'
 
 
@@ -47,14 +59,43 @@ def check_origin(request):
     # Reject browser cross-site requests even if cookies were omitted (login CSRF).
     if request.headers.get('sec-fetch-site') == 'cross-site':
         raise HTTPException(403, 'Cross-site requests are not allowed')
+    if settings.APP_ENV == "production":
+        if origin != settings.PUBLIC_ORIGIN:
+            raise HTTPException(403, 'Use the same-origin application to submit changes')
+        return
     if origin:
-        parsed = urlsplit(origin)
+        try:
+            parsed = urlsplit(origin)
+        except ValueError:
+            raise HTTPException(403, 'Invalid request origin') from None
         if parsed.scheme not in ('http', 'https') or parsed.netloc != request.headers.get('host'):
             raise HTTPException(403, 'Use the same-origin application to submit changes')
 
 
+def client_address(request: Request) -> str:
+    peer = request.client.host if request.client else "unknown"
+    if settings.TRUSTED_PROXY and peer == settings.TRUSTED_PROXY:
+        try:
+            return str(ip_address(request.headers.get("x-forwarded-for", "")))
+        except ValueError:
+            return peer
+    return peer
+
+
+def lock_account(db: Session, user_id: int):
+    if db.get_bind().dialect.name == "sqlite":
+        # Start a write transaction before loading any mutable account state.
+        # SQLite does not implement SELECT FOR UPDATE.
+        from sqlalchemy import text
+        database = db.connection()
+        if not database.connection.driver_connection.in_transaction:
+            database.execute(text("BEGIN IMMEDIATE"))
+    return db.scalar(select(User).where(User.id == user_id).with_for_update())
+
+
 def current_user(request: Request, db: Session = Depends(get_db)):
-    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+    mutating = request.method not in SAFE_METHODS
+    if mutating:
         check_origin(request)
     token = request.cookies.get('bb_session')
     if token:
@@ -65,7 +106,7 @@ def current_user(request: Request, db: Session = Depends(get_db)):
         credential = db.get(AccountCredential, session.user_id)
         if not user or not credential:
             raise HTTPException(401, 'Account is unavailable')
-        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        if mutating:
             supplied = request.headers.get('x-csrf-token', '')
             if not hmac.compare_digest(digest(supplied), session.csrf_hash):
                 raise HTTPException(403, 'Missing or invalid CSRF token')
@@ -84,12 +125,23 @@ def current_user(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, 'Sign in to continue')
     request.state.identity = identity
     from app.services.limits import reserve
-    minute = int(now_utc().timestamp()) // 60
+    minute = int(now_utc().replace(tzinfo=timezone.utc).timestamp()) // 60
     if not reserve(db, f'request:{identity.id}:{minute}', settings.REQUESTS_PER_MINUTE,
                    now_utc()+timedelta(minutes=2)):
         db.rollback()
         raise HTTPException(429, 'Request limit reached. Retry shortly.', headers={'Retry-After':'60'})
     db.commit()
+    if mutating and identity.session_hash and request.url.path.rstrip("/") not in INFERENCE_ROUTES:
+        # Recheck authorization after acquiring the same lock used for deletion
+        # and session rotation. The route owns this transaction through commit.
+        locked_user = lock_account(db, identity.id)
+        session = db.get(AuthSession, identity.session_hash)
+        credential = db.get(AccountCredential, identity.id)
+        if not locked_user or not credential or not session or session.expires_at <= now_utc():
+            raise HTTPException(401, "Session expired. Sign in again.")
+        if credential.role != identity.role:
+            identity = Identity(identity.id, identity.username, credential.role, identity.session_hash)
+            request.state.identity = identity
     return identity
 
 
@@ -99,11 +151,20 @@ def reviewer(user: Identity = Depends(current_user)):
     return user
 
 
-def new_session(db, user_id, response):
+def stage_session(db, user_id):
     token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     expiry = now_utc() + timedelta(hours=settings.SESSION_HOURS)
     db.add(AuthSession(token_hash=digest(token), user_id=user_id, csrf_hash=digest(csrf), expires_at=expiry))
-    db.commit()
+    return token, csrf
+
+
+def set_session_cookies(response, token, csrf):
     options = dict(secure=settings.COOKIE_SECURE, samesite='strict', path='/', max_age=settings.SESSION_HOURS*3600)
     response.set_cookie('bb_session', token, httponly=True, **options)
     response.set_cookie('bb_csrf', csrf, httponly=False, **options)
+
+
+def clear_session_cookies(response):
+    options = dict(secure=settings.COOKIE_SECURE, samesite="strict", path="/")
+    response.delete_cookie("bb_session", httponly=True, **options)
+    response.delete_cookie("bb_csrf", **options)

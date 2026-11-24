@@ -51,7 +51,7 @@ class NeuralTransliterator:
             self.src_vocab = CharVocab.from_dict(vocab_data["src_vocab"])
             self.tgt_vocab = CharVocab.from_dict(vocab_data["tgt_vocab"])
 
-            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
+            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=True)
             hp = checkpoint.get("hyperparams", {})
             emb_dim = hp.get("emb_dim", 64)
             enc_hid_dim = hp.get("enc_hid_dim", 96)
@@ -78,13 +78,13 @@ class NeuralTransliterator:
                                     if count >= 10000:
                                         break
                 except Exception as c_err:
-                    logger.debug("Transliteration corpus cache loading skipped: %s", c_err)
+                    logger.debug("Transliteration corpus cache loading skipped (%s)", type(c_err).__name__)
 
             self.model.eval()
             self.is_loaded = True
             logger.info("NeuralTransliterator loaded successfully on %s", self.device)
         except Exception as e:
-            logger.warning("NeuralTransliterator could not load checkpoint: %s (using phonetic rule fallback)", e)
+            logger.warning("NeuralTransliterator could not load checkpoint (%s)", type(e).__name__)
             self.is_loaded = False
 
     def transliterate_word(self, roman_word: str, language: str = "hindi") -> str:

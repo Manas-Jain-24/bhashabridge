@@ -20,6 +20,8 @@ from app.services.translation.translator import modular_translator
 from app.core.config import settings
 from app.services.translation.punctuation import finish_native_sentence
 from app.services.translation.generation import generate_next_token_scores,GENERATION_SETTINGS,validate_native_output
+from app.services.translation.model_snapshot import model_snapshot
+from app.services.runtime import check_deadline
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,7 @@ class IndicTrans2Adapter(BaseTranslationService):
         self._cache_lock = threading.Lock()
         self._load_failed = False
         self._load_attempted = False
-        self.max_cache_size = int(os.getenv("TRANSLATION_CACHE_MAX_SIZE", "1000"))
+        self.max_cache_size = 0 if settings.APP_ENV == "production" else settings.TRANSLATION_CACHE_MAX_SIZE
         self._translation_cache: OrderedDict[Tuple[str,str,str,str], Dict[str, Any]] = OrderedDict()
 
     def _lazy_load_model(self, force_retry: bool = False) -> bool:
@@ -95,6 +97,7 @@ class IndicTrans2Adapter(BaseTranslationService):
             return False
 
         with self._load_lock:
+            check_deadline()
             if self.is_loaded and self.model is not None and self.tokenizer is not None and self.processor is not None:
                 return True
             if self._load_failed and not explicit_retry:
@@ -102,25 +105,27 @@ class IndicTrans2Adapter(BaseTranslationService):
 
             self._load_attempted = True
             try:
+                snapshot, revision, local_options = model_snapshot(self.model_checkpoint)
                 import torch
                 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
                 try:
                     from IndicTransToolkit.processor import IndicProcessor
                 except ImportError:
                     from app.services.translation.indic_processor import HindiMarathiProcessor as IndicProcessor
-                logger.info("Attempting to load IndicTrans2 model from %s", self.model_checkpoint)
+                logger.info("Attempting to load IndicTrans2 model")
 
                 self.tokenizer = AutoTokenizer.from_pretrained(
-                    self.model_checkpoint,
-                    trust_remote_code=True
+                    snapshot,
+                    trust_remote_code=True, **local_options,
                 )
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                if device=='cpu' and self.stream_weights:
+                if device=='cpu' and self.stream_weights and not local_options:
                     from app.services.translation.low_memory import load_streamed
                     self.model=load_streamed(self.model_checkpoint,getattr(torch,self.cpu_dtype))
                 else:
                     self.model = AutoModelForSeq2SeqLM.from_pretrained(
-                        self.model_checkpoint, trust_remote_code=True,
+                        snapshot, trust_remote_code=True, **local_options,
+                        **({"use_safetensors": True} if local_options else {}),
                         dtype=torch.float16 if device == "cuda" else getattr(torch,self.cpu_dtype), low_cpu_mem_usage=True)
                 self.model.to(device)
                 self.model.eval()
@@ -130,7 +135,8 @@ class IndicTrans2Adapter(BaseTranslationService):
                     try:
                         from app.services.translation.adapter_artifact import validated_artifact
                         from peft import PeftModel
-                        path,digest=validated_artifact(decision,self.model_checkpoint,getattr(self.model.config,'_commit_hash',None))
+                        path,digest=validated_artifact(decision,self.model_checkpoint,
+                                                       revision or getattr(self.model.config,'_commit_hash',None))
                         adapter_load_started=True
                         self.model=PeftModel.from_pretrained(self.model,path,is_trainable=False)
                         self.model.eval(); self.adapter_sha256=digest
@@ -152,6 +158,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                 )
                 self.is_loaded = False
                 self._load_failed = True
+                self.model = self.tokenizer = self.processor = None
                 return False
 
     def _adapter_context(self, source_language, target_language):
@@ -300,6 +307,7 @@ class IndicTrans2Adapter(BaseTranslationService):
                                                if rule_pair(source_language, target_language) else (devanagari_input, {}))
 
                 with self._inference_lock, self._adapter_context(source_language,target_language):
+                    check_deadline()
                     prepared = self.processor.preprocess_batch(
                         [shielded_input], src_lang=src_tag, tgt_lang=tgt_tag
                     )
@@ -346,6 +354,8 @@ class IndicTrans2Adapter(BaseTranslationService):
                     if len(self._translation_cache) > self.max_cache_size:
                         self._translation_cache.popitem(last=False)
                 return result
+            except HTTPException:
+                raise
             except Exception as exc:
                 logger.warning("IndicTrans2 inference failed (%s); checking available fallback.", exc.__class__.__name__)
 

@@ -42,7 +42,7 @@ def test_draft_report_cannot_promote_a_model():
 
 def test_training_export_excludes_drafts_evaluation_and_heldout_intents():
     workflow=script('review_workflow')
-    row=SimpleNamespace(status='proposed',purpose='runtime',license='CC0-1.0',source_language='hindi',
+    row=SimpleNamespace(status='proposed',purpose='runtime',license='CC0-1.0',source_language='hindi',publication_consent=True,
         target_language='bengali',source_text='नया पाठ',proposed_target='নতুন পাঠ')
     assert not workflow.eligible_training(row,set())
     row.status='reviewed';row.purpose='evaluation'
@@ -61,7 +61,8 @@ def test_additive_migration_is_idempotent_and_preserves_existing_rows(tmp_path):
     migrate(engine);migrate(engine)
     with engine.connect() as conn:
         assert conn.execute(text('SELECT username FROM users WHERE id=42')).scalar()=='existing'
-        assert conn.execute(text('SELECT count(*) FROM schema_versions')).scalar()==1
+        from app.models.migrations import LATEST
+        assert conn.execute(text('SELECT count(*) FROM schema_versions')).scalar()==LATEST
         assert conn.execute(text('SELECT count(*) FROM correction_reports')).scalar()==0
     engine.dispose()
 
@@ -160,4 +161,4 @@ def test_deployment_check_requires_migrated_schema_and_account_configuration(db_
     production=settings.model_copy(update={'APP_ENV':'production','AUTH_MODE':'accounts','COOKIE_SECURE':True,
         'TESTING':False,'USE_MOCK_MODELS':False,'ALLOW_SQLITE_FALLBACK':False,'CORS_ORIGINS':['https://example.org']})
     migrate(db_session.get_bind())
-    assert checker.check(production,db_session.get_bind())['configuration_ready']
+    assert not checker.check(production,db_session.get_bind())['configuration_ready']

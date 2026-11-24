@@ -3,7 +3,7 @@ import {AccountContext} from './AccountShell';
 import {apiJson} from '../services/http';
 import {useDialog} from '../utils/useDialog';
 type Draft = {source_language:string;target_language:string;source_text:string;observed_target:string};
-type Report = Draft & {id:string;status:string;version:number;category:string;note:string;proposed_target?:string;proposed_roman?:string;proposed_english?:string;provenance:string;license:string};
+type Report = Draft & {id:string;user_id:number;status:string;version:number;category:string;note:string;proposed_target?:string;proposed_roman?:string;proposed_english?:string;provenance:string;license:string;publication_consent:boolean};
 export function CorrectionQueue({initial,onClose}:{initial:Draft|null;onClose:()=>void}) {
   const account=useContext(AccountContext);
   const dialog=useDialog(true);
@@ -17,6 +17,7 @@ export function CorrectionQueue({initial,onClose}:{initial:Draft|null;onClose:()
   const [english,setEnglish]=useState('');
   const [provenance,setProvenance]=useState('');
   const [license,setLicense]=useState('');
+  const [publicationConsent,setPublicationConsent]=useState(false);
   const [attested,setAttested]=useState(false);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -27,11 +28,11 @@ export function CorrectionQueue({initial,onClose}:{initial:Draft|null;onClose:()
   const act=async(operation:()=>Promise<unknown>)=>{setBusy(true);setError('');try{await operation();await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
   const create=async(e:React.FormEvent)=>{e.preventDefault();if(!initial)return;await act(async()=>{
     const row=await apiJson<Report>('/api/corrections',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...initial,category,note,provenance:'Learner report from translation screen; unreviewed',license:'User contribution; permission required before redistribution'})});
-    setSelected(row);setTarget('');setRoman('');setEnglish('');setProvenance(row.provenance);setLicense(row.license);setHistory([]);
+    setSelected(row);setTarget('');setRoman('');setEnglish('');setProvenance(row.provenance);setLicense(row.license);setPublicationConsent(false);setHistory([]);
   });};
-  const choose=async(row:Report)=>{setSelected(row);setTarget(row.proposed_target||'');setRoman(row.proposed_roman||'');setEnglish(row.proposed_english||'');setProvenance(row.provenance);setLicense(row.license);setNote(row.note);setAttested(false);setHistory([]);
+  const choose=async(row:Report)=>{setSelected(row);setTarget(row.proposed_target||'');setRoman(row.proposed_roman||'');setEnglish(row.proposed_english||'');setProvenance(row.provenance);setLicense(row.license);setPublicationConsent(row.publication_consent);setNote(row.note);setAttested(false);setHistory([]);
     try{setHistory(await apiJson('/api/corrections/'+row.id+'/history'));}catch(e){setError((e as Error).message);}};
-  const proposal=async(e:React.FormEvent)=>{e.preventDefault();if(!selected)return;await act(async()=>{const row=await apiJson<Report>('/api/corrections/'+selected.id+'/proposal',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:selected.version,target,roman,english,note,provenance,license})});await choose(row);});};
+  const proposal=async(e:React.FormEvent)=>{e.preventDefault();if(!selected)return;await act(async()=>{const row=await apiJson<Report>('/api/corrections/'+selected.id+'/proposal',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:selected.version,target,roman,english,note,provenance,license,publication_consent:publicationConsent})});await choose(row);});};
   const decision=(status:string)=>{if(!selected)return;void act(async()=>{setSelected(await apiJson<Report>('/api/corrections/'+selected.id+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:selected.version,status,human_attestation:attested,note})}));setAttested(false);setHistory([]);});};
   const field='w-full bg-slate-950 border border-slate-600 rounded-lg p-2 text-white';
   return <div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Correction review queue" className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 text-slate-100 p-4 sm:p-10">
@@ -57,6 +58,7 @@ export function CorrectionQueue({initial,onClose}:{initial:Draft|null;onClose:()
           <label className="block">Proposed English meaning<input className={field} maxLength={1000} value={english} onChange={e=>setEnglish(e.target.value)}/></label>
           <label className="block">Source / provenance<input className={field} required maxLength={1000} value={provenance} onChange={e=>setProvenance(e.target.value)}/></label>
           <label className="block">License or permission<input className={field} required maxLength={120} value={license} onChange={e=>setLicense(e.target.value)}/></label>
+          {account?.id===selected.user_id&&<label className="flex items-start gap-2"><input type="checkbox" checked={publicationConsent} onChange={e=>setPublicationConsent(e.target.checked)}/> I have the rights to share this text and agree to publication or training use after human review.</label>}
           <p className="text-xs text-slate-400">Record actual rights and source information. Changing a proposal or its provenance requires a new review.</p>
           <label className="block">Reason / review note<textarea className={field} required maxLength={2000} value={note} onChange={e=>setNote(e.target.value)}/></label>
           <button disabled={busy} className="bg-indigo-600 p-2 rounded">Save unreviewed proposal</button>

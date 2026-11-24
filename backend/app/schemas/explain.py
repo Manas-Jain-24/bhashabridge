@@ -1,6 +1,6 @@
 from app.core.languages import InputText
 from app.core.languages import Language
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 from app.schemas.analyze import VocabularyItem, GrammarPoint, ExampleItem
 
@@ -9,6 +9,7 @@ class ExplainRequest(BaseModel):
     source_language: Language = Field("hindi", description="Registered source language")
     target_text: InputText = Field(..., description="Target sentence")
     target_language: Language = Field("marathi", description="Registered target language")
+    translation_mode: Literal["local", "hybrid"] | None = None
 
 class ExplainResponse(BaseModel):
     summary: str

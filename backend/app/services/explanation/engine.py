@@ -38,7 +38,7 @@ class HybridExplanationEngine(BaseExplanationService):
                 with open(dataset_path, "r", encoding="utf-8") as f:
                     self._dataset_cache = json.load(f)
             except Exception as e:
-                logger.warning(f"Could not load educational dataset cache: {e}")
+                logger.warning("Could not load educational dataset cache (%s)", type(e).__name__)
                 self._dataset_cache = []
 
         external_path = data_dir / "external_parallel_learning_index.json"
@@ -48,7 +48,7 @@ class HybridExplanationEngine(BaseExplanationService):
                     self._external_cache = json.load(ef)
                 logger.info(f"Loaded {len(self._external_cache)} external parallel sentences into explanation cache.")
             except Exception as e:
-                logger.warning(f"Could not load external parallel index: {e}")
+                logger.warning("Could not load external parallel index (%s)", type(e).__name__)
                 self._external_cache = []
 
     # Knowledge base for specific flagship phrase mappings

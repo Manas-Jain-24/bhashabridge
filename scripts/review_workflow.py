@@ -13,12 +13,34 @@ def frozen_sources():
     from runtime_evaluation import load_cases
     from app.services.translation.corpus import normalize_source
     _,rows=load_cases()
-    return {(r['source_language'],normalize_source(r[key])) for r in rows for key in ('native_source','roman_source')}
+    forbidden = {(r['source_language'],normalize_source(r[key])) for r in rows for key in ('native_source','roman_source')}
+    base = ROOT / "data" / "processed"
+    files = [base / "translation" / "test.jsonl", base / "expanded" / "translation" / "test.jsonl"]
+    files.extend(sorted((base / "translation-quality-v1").glob("*.jsonl")))
+    files.extend(sorted((base / "translation-quality-v2").glob("*.jsonl")))
+    for path in files:
+        if path.name == "train.jsonl":
+            continue
+        with path.open(encoding="utf-8") as source:
+            for line in source:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if "sentences" in row:
+                    values = row["sentences"].items()
+                elif "source_language" in row:
+                    values = ((row["source_language"], row["source_text"]),
+                              (row["target_language"], row["target_text"]))
+                else:
+                    values = ((language, row[language]) for language in ("hindi", "marathi"))
+                forbidden.update((language, normalize_source(text)) for language, text in values if text)
+    return forbidden
 
 
 def eligible_training(row, forbidden):
     from app.services.translation.corpus import normalize_source
     return (row.status=='reviewed' and row.purpose=='runtime'
+            and row.publication_consent and bool((row.proposed_target or "").strip())
             and row.license in ('CC0-1.0','CC-BY-4.0')
             and (row.source_language,normalize_source(row.source_text)) not in forbidden
             and (row.target_language,normalize_source(row.proposed_target or '')) not in forbidden)
@@ -32,16 +54,18 @@ def main():
     export=sub.add_parser('export-training');export.add_argument('--output',type=Path,required=True)
     evaluation=sub.add_parser('export-evaluation');evaluation.add_argument('--output',type=Path,required=True)
     publish=sub.add_parser('publish-memory');publish.add_argument('--report-id',required=True)
+    publish.add_argument('--version',type=int,required=True)
     args=parser.parse_args()
-    from app.models.database import SessionLocal,init_db
+    from app.models.database import SessionLocal
+    from app.core.auth import lock_account
     from app.models.entities import User,AccountCredential,CorrectionReport,CorrectionEvent,ReviewedTranslation
     from app.api.routes.corrections import dto
     from app.services.translation.corpus import normalize_source
-    from sqlalchemy.exc import IntegrityError
-    init_db()
     with SessionLocal() as db:
         if args.command=='set-reviewer':
             user=db.query(User).filter_by(username=args.username.lower()).first()
+            if user:
+                lock_account(db, user.id)
             credential=db.get(AccountCredential,user.id) if user else None
             if not credential: raise ValueError('Create a named account first; the demo user cannot be a reviewer')
             credential.role='reviewer';db.commit();print('Reviewer role assigned to the named account.');return
@@ -65,9 +89,14 @@ def main():
             db.commit();print(json.dumps({'drafts_imported':count,'human_reviews_created':0}));return
         forbidden=frozen_sources()
         if args.command=='publish-memory':
-            row=db.get(CorrectionReport,args.report_id)
-            if row is None or not eligible_training(row,forbidden):
-                raise ValueError('Requires reviewed, licensed, non-evaluation content outside frozen source/target intents')
+            from sqlalchemy import text
+            if db.get_bind().dialect.name == "sqlite":
+                db.execute(text("BEGIN IMMEDIATE"))
+            row=db.get(CorrectionReport,args.report_id,with_for_update=True)
+            if row is None or row.version != args.version or not eligible_training(row,forbidden):
+                raise ValueError('Requires the current reviewed version, consent, license and content outside held-out data')
+            if not review_event(db, row, CorrectionEvent):
+                raise ValueError('The version must have a human review event')
             key=normalize_source(row.source_text)
             current=db.query(ReviewedTranslation).filter_by(source_language=row.source_language,target_language=row.target_language,source_key=key).first()
             if current:
@@ -82,13 +111,19 @@ def main():
         else: rows=[row for row in rows if row.purpose=='evaluation' and row.evaluation_id]
         output=[]
         for row in rows:
-            decision=db.query(CorrectionEvent).filter_by(report_id=row.id,action='reviewed').order_by(CorrectionEvent.id.desc()).first()
+            decision=review_event(db, row, CorrectionEvent)
             if not decision: continue
             output.append({**dto(row),'reviewer_id':decision.actor_id,'review_date':decision.created_at.isoformat(),
                            'audit_event_id':decision.id})
         args.output.parent.mkdir(parents=True,exist_ok=True)
-        args.output.write_text(json.dumps({'purpose':args.command,'rows':output,'count':len(output)},ensure_ascii=False,indent=2),encoding='utf-8')
+        with args.output.open("x", encoding="utf-8") as destination:
+            json.dump({'purpose':args.command,'rows':output,'count':len(output)}, destination, ensure_ascii=False, indent=2)
         print(json.dumps({'exported':len(output),'purpose':args.command}))
+
+
+def review_event(db, row, event_model):
+    decision = db.query(event_model).filter_by(report_id=row.id, action='reviewed').order_by(event_model.id.desc()).first()
+    return decision if decision and json.loads(decision.snapshot_json).get("version") == row.version else None
 
 
 if __name__=='__main__': main()

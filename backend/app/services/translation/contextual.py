@@ -21,7 +21,8 @@ from app.core.languages import LANGUAGES, check_source_script, has_native
 from app.services.explanation.llm_tutor import EnglishGloss, llm_tutor
 from app.services.text_entities import ENTITY_PATTERN
 from app.services.translation.generation import validate_native_output
-from app.services.runtime import cloud_allowed, provider_event, check_deadline, deadline
+from app.services.runtime import provider_event, check_deadline
+from app.services.explanation.llm_tutor import ProviderUnavailable
 
 logger = logging.getLogger(__name__)
 PROMPT_VERSION = 'raw-source-context-v3'
@@ -47,7 +48,7 @@ class ContextualCandidate(BaseModel):
     translation_roman: str = Field(min_length=1, max_length=4000, description='The exact target translation transliterated into Latin letters, not translated into English.')
     english_meaning: str = Field(min_length=1, max_length=1000)
     assessment: Literal['equivalent', 'corrected', 'ambiguous']
-    meaning_note: str | None
+    meaning_note: str | None = Field(max_length=500)
     meaning_alternatives: list[MeaningChoice] = Field(max_length=3)
     contrasts: list[GroundedContrast] = Field(max_length=3)
 
@@ -130,36 +131,31 @@ class ContextualTranslator:
     def __init__(self):
         self._cache = OrderedDict()
         self._lock = threading.Lock()
-        self._slots = threading.BoundedSemaphore(2)
-        self._retry_after = 0.0
 
     def refine(self, original, native_guess, source_language, target_language, draft=None):
         """Return (candidate, status); one bounded cloud call, or a local fallback."""
-        if not llm_tutor.is_available:
+        if settings.TRANSLATION_MODE == "local" or not llm_tutor.is_available:
             return None, 'unavailable'
         model = settings.GEMINI_TRANSLATION_MODEL
         key = (PROMPT_VERSION, model, original, native_guess, source_language,
                target_language, (draft or {}).get('translation_native'))
         now = time.monotonic()
-        with self._lock:
-            cached = self._cache.get(key)
-            if cached and now - cached[0] < 300:
-                self._cache.move_to_end(key)
-                return deepcopy(cached[1]), 'assisted'
-            if now < self._retry_after:
-                return None, 'cooldown'
-        if not self._slots.acquire(blocking=False):
-            return None, 'busy'
+        cache = settings.APP_ENV != "production"
+        if cache:
+            with self._lock:
+                cached = self._cache.get(key)
+                if cached and now - cached[0] < 300:
+                    self._cache.move_to_end(key)
+                    return deepcopy(cached[1]), 'assisted'
         try:
-            if not cloud_allowed():
-                return None, 'budget_exhausted'
             data = {'original_input': original, 'source_language': source_language,
                     'target_language': target_language, 'native_spelling_guess': native_guess,
                     'source_script': LANGUAGES[source_language]['script_label'],
                     'target_script': LANGUAGES[target_language]['script_label'],
                     'local_translation_draft': (draft or {}).get('translation_native')}
-            response = llm_tutor._client.models.generate_content(
+            response = llm_tutor.generate(
                 model=model,
+                timeout=settings.GEMINI_TRANSLATION_TIMEOUT_SECONDS,
                 contents=json.dumps(data, ensure_ascii=False),
                 config={
                     'system_instruction': (
@@ -187,22 +183,22 @@ class ContextualTranslator:
                     'response_json_schema': ContextualCandidate.model_json_schema(),
                     'temperature': 0,
                     'max_output_tokens': settings.GEMINI_MAX_OUTPUT_TOKENS,
-                    'http_options': {'timeout': int(min(settings.GEMINI_TRANSLATION_TIMEOUT_SECONDS,
-                        max(0.1, deadline.get()-time.monotonic()) if deadline.get() else 60) * 1000),
-                                     'retry_options': {'attempts': 1}},
                     **({'thinking_config': {'thinking_level': 'low'}} if model.startswith('gemini-3') else {}),
                 },
             )
-            candidate = ContextualCandidate.model_validate_json(response.text)
+            candidate = ContextualCandidate.model_validate_json(response)
             candidate = validate_candidate(candidate, original, source_language, target_language)
             check_deadline()
             provider_event(True)
-            with self._lock:
-                self._cache[key] = (time.monotonic(), deepcopy(candidate))
-                self._cache.move_to_end(key)
-                while len(self._cache) > 256:
-                    self._cache.popitem(last=False)
+            if cache:
+                with self._lock:
+                    self._cache[key] = (time.monotonic(), deepcopy(candidate))
+                    self._cache.move_to_end(key)
+                    while len(self._cache) > 256:
+                        self._cache.popitem(last=False)
             return candidate, 'assisted'
+        except ProviderUnavailable as exc:
+            return None, str(exc)
         except (ValueError, HTTPException) as exc:
             if isinstance(exc, HTTPException) and exc.status_code == 504:
                 raise
@@ -211,16 +207,6 @@ class ContextualTranslator:
             # inputs. Only transport/provider failures open the circuit breaker.
             logger.info('Context translation response rejected (%s)', type(exc).__name__)
             return None, 'rejected'
-        except Exception as exc:
-            provider_event(False, 'provider_error')
-            # Never log response bodies, user input, credential-bearing URLs or keys.
-            logger.info('Context translation unavailable (%s, status=%s); keeping local result',
-                        type(exc).__name__, getattr(exc, 'code', None))
-            with self._lock:
-                self._retry_after = time.monotonic() + 30
-            return None, 'provider_error'
-        finally:
-            self._slots.release()
 
 
 contextual_translator = ContextualTranslator()

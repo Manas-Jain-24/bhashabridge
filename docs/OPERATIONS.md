@@ -1,5 +1,26 @@
 # Operating BhashaBridge
 
+## PostgreSQL production operations
+
+Use [Deployment](DEPLOYMENT.md) for production configuration and database roles. Use a separate target for recovery drills. The SQLite commands below apply to development.
+
+```sh
+umask 077
+docker compose --env-file .env.production -f compose.production.yml exec -T postgres \
+  sh -ec 'pg_dump --username "$POSTGRES_USER" --format=custom "$POSTGRES_DB"' > backup.dump
+sha256sum backup.dump
+docker compose --env-file .env.production -f compose.production.yml exec -T postgres \
+  sh -ec 'createdb --username "$POSTGRES_USER" bhashabridge_restore_drill'
+docker compose --env-file .env.production -f compose.production.yml exec -T postgres \
+  sh -ec 'pg_restore --username "$POSTGRES_USER" --exit-on-error --dbname=bhashabridge_restore_drill' < backup.dump
+```
+
+Encrypt backups and transfer an encrypted copy off host. Start with daily backups and 30 days of retention, adjusted to recovery and privacy requirements. Back up role configuration separately. Check schema versions, counts, login, and learning state after restore. Record recovery time and verify backup expiry. Roll back to a compatible prior image when possible. Otherwise restore into a new database and reconcile writes made since the backup before switching traffic.
+
+Monitor HTTPS and `/api/health/ready`, database pool use, backup age, inference latency, saturation, and error counts. An authenticated reviewer can read `/api/operations/metrics`. Include request IDs and aggregate counts in alerts. Metrics reset on restart. Record `docker stats` under representative load and budget for compute, disk, backups, and opted-in provider traffic. Application quotas bound attempts. Set a provider billing limit separately.
+
+Schedule `python scripts/maintenance.py` inside the API service. Review the preview before enabling `--apply`, which removes expired sessions, invitations, quota windows, and practice issues.
+
 The default remains a local workspace. Account mode, migrations and bounded
 provider usage are implemented; a public deployment still needs a host, TLS,
 load testing and an operator. No production deployment is implied by CI passing.
@@ -14,31 +35,8 @@ and account exports outside Git. `backend/.env.example` lists supported settings
 For local account testing set `AUTH_MODE=accounts` and restart the backend.
 The UI then offers registration/sign-in. The existing local profile stays intact;
 new accounts have separate progress, arcade sessions, reports and rewards.
-Production configuration requires:
-
-```dotenv
-APP_ENV=production
-AUTH_MODE=accounts
-COOKIE_SECURE=true
-ALLOW_SQLITE_FALLBACK=false
-TESTING=false
-USE_MOCK_MODELS=false
-ALLOW_REGISTRATION=true
-REQUESTS_PER_MINUTE=120
-CLOUD_CALLS_PER_DAY=100
-CLOUD_USER_CALLS_PER_DAY=25
-GEMINI_MAX_OUTPUT_TOKENS=2048
-REQUEST_TIMEOUT_SECONDS=60
-INFERENCE_WORKERS=2
-```
-
-Set `DATABASE_URL` to the environment's database and `CORS_ORIGINS` to its exact
-HTTPS application origin. Serve the built frontend and `/api` on the **same
-origin**. Forward the original Host header to FastAPI; do not rewrite it to
-localhost. Bind FastAPI to loopback/private networking. Configure trusted proxy
-addresses explicitly; do not trust arbitrary forwarded client-IP headers.
-
-The Vite development proxy preserves Host. It is not a production web server.
+Production uses the dedicated environment template and HTTPS proxy described in
+[Deployment](DEPLOYMENT.md). The Vite development proxy preserves Host for local use.
 Cookie authentication uses opaque random session tokens, hashed server-side,
 HttpOnly session cookies, SameSite=Strict and a CSRF header on mutations. Passwords
 use scrypt N=32768, r=8, p=3 with random salts, one of the configurations in the
@@ -49,10 +47,10 @@ promise those capabilities to users.
 
 ## Database lifecycle and rollback
 
-SQLite remains suitable for this single-machine application. Run one API process
+SQLite remains available for local development. Run one production API process
 initially; additional workers multiply model memory and inference capacity.
 Database-backed quotas coordinate workers, while model locks, circuit breakers
-and metrics are process-local. A database change cannot improve translation quality.
+and metrics are process-local.
 
 Before changing code/schema, stop accepting writes and take a backup. The SQLite
 online backup API includes committed WAL contents. Commands refuse to overwrite
@@ -65,14 +63,12 @@ python scripts/database_ops.py drill --source .demo/backups/before-upgrade.db --
 
 Each command verifies integrity and writes a manifest with table counts and a
 SHA-256 hash. Backups contain personal data and authentication material; restrict
-access and define retention. Account deletion does not erase older backups.
-Use database-native backup tools if choosing PostgreSQL later; this utility is
-deliberately SQLite-only.
+access and define retention. Use the PostgreSQL backup commands above for production.
 
-On startup, ordered migrations run before seeding. Version 1 adds authentication,
-review, quota and practice-ownership tables without rewriting existing tables.
-Future schema changes require a new numbered migration; `create_all` does not
-upgrade existing columns. The app refuses a schema newer than it understands.
+The migrator applies ordered revisions before seeding. Version 1 introduced authentication,
+review, quota and practice-ownership tables. Version 2 adds invitations, correction
+publication consent, user sequence alignment and history indexes. Apply new revisions
+through the migrator. Readiness requires the expected schema history.
 
 Rehearse an upgrade on a restored **staging copy** first, then run:
 

@@ -1,6 +1,6 @@
 from app.core.languages import rule_pair, check_source_script
 from fastapi import HTTPException
-import os
+from unicodedata import normalize
 from app.core.config import settings
 from app.services.base import BaseTranslationService
 from app.services.translation.indictrans2 import indictrans2_adapter
@@ -10,7 +10,7 @@ from app.services.translation.memory import lookup_reviewed
 from app.services.translation.contextual import contextual_translator, candidate_explanation
 from app.services.transliteration.service import transliteration_service
 from app.services.language_detection.detector import language_detector
-from app.services.runtime import stage
+from app.services.runtime import effective_translation_mode, stage
 
 def get_translation_service() -> BaseTranslationService:
     """
@@ -31,7 +31,7 @@ def translate_with_memory(db, text: str, source_language: str, target_language: 
                           script: str = "both", native_text=None, translation_mode=None):
     """Keep raw text available throughout normalization, local inference and assistance."""
     check_source_script(text, source_language)
-    mode = translation_mode or settings.TRANSLATION_MODE
+    mode = effective_translation_mode(translation_mode)
     if mode not in ('local', 'hybrid'):
         raise ValueError('Unsupported translation mode')
     with stage('memory'):
@@ -39,7 +39,8 @@ def translate_with_memory(db, text: str, source_language: str, target_language: 
     if reviewed is not None:
         return {**reviewed, 'context_status': 'reviewed', '_skip_tutor': mode == 'local'}
     if native_text is None:
-        normalized = ' '.join(text.split()) if source_language == 'bengali' else language_detector.normalize(text)
+        normalized = normalize("NFC", ' '.join(text.split()) if source_language == 'bengali'
+                               else language_detector.normalize(text))
         with stage('transliteration'):
             native_text = transliteration_service.transliterate(normalized, language=source_language, direction='latin_to_native')
     engine = translation_service if rule_pair(source_language, target_language) else indictrans2_adapter

@@ -1,0 +1,17 @@
+.git
+**/.env*
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest*
+**/.npm-cache
+**/*.sqlite*
+**/*.db
+**/*.log
+frontend/dist
+models
+output
+data/raw
+ml/experiments
+ml/evaluation
+ml/transliteration/weights/*_backup.pt
